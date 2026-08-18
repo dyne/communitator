@@ -1,4 +1,6 @@
-/* Reset and base styles */
+/* ============================================
+ *  RESET & BASE STYLES
+ *  ============================================ */
 * {
   margin: 0;
   padding: 0;
@@ -8,17 +10,27 @@
 :root {
   --primary: #7c4dff;
   --primary-dark: #6c3fdb;
+  --primary-light: #f0ebff;
   --secondary: #e0e0e0;
   --success: #4caf50;
+  --success-light: #e8f5e9;
   --danger: #ff5252;
   --warning: #ff9800;
+  --warning-light: #fff3e0;
+  --info: #2196f3;
+  --info-light: #e3f2fd;
+  --nostr: #ff6b00;
+  --nostr-dark: #e85a00;
   --text: #333;
   --text-light: #666;
+  --text-muted: #999;
   --background: #f5f5f5;
   --white: #ffffff;
   --border: #e0e0e0;
-  --shadow: 0 2px 4px rgba(0,0,0,0.1);
+  --border-light: #f0f0f0;
+  --shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   --radius: 8px;
+  --radius-sm: 4px;
 }
 
 body {
@@ -28,7 +40,9 @@ body {
   line-height: 1.6;
 }
 
-/* App Layout */
+/* ============================================
+ *  APP LAYOUT
+ *  ============================================ */
 .app {
   max-width: 800px;
   margin: 0 auto;
@@ -38,7 +52,9 @@ body {
   flex-direction: column;
 }
 
-/* Header */
+/* ============================================
+ *  HEADER
+ *  ============================================ */
 .app-header {
   display: flex;
   align-items: center;
@@ -76,7 +92,7 @@ body {
 }
 
 .user-badge {
-  background: #e8f5e9;
+  background: var(--success-light);
   padding: 6px 14px;
   border-radius: 20px;
   font-size: 14px;
@@ -84,22 +100,38 @@ body {
   font-family: monospace;
 }
 
-/* Main content */
+/* ============================================
+ *  MAIN CONTENT
+ *  ============================================ */
 main {
   flex: 1;
+  min-height: 400px;
 }
 
-/* Footer */
+/* ============================================
+ *  FOOTER
+ *  ============================================ */
 footer {
   margin-top: 50px;
   padding-top: 20px;
   border-top: 1px solid var(--border);
   text-align: center;
-  color: #999;
+  color: var(--text-muted);
   font-size: 14px;
 }
 
-/* Form elements */
+footer a {
+  color: inherit;
+  text-decoration: underline;
+}
+
+footer a:hover {
+  color: var(--primary);
+}
+
+/* ============================================
+ *  FORM ELEMENTS
+ *  ============================================ */
 .form-group {
   margin-bottom: 24px;
 }
@@ -135,7 +167,9 @@ footer {
   min-height: 60px;
 }
 
-/* Buttons */
+/* ============================================
+ *  BUTTONS
+ *  ============================================ */
 .btn-primary {
   background: var(--primary);
   color: white;
@@ -184,7 +218,7 @@ footer {
   color: white;
   border: none;
   padding: 4px 10px;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   cursor: pointer;
   font-size: 14px;
   transition: background 0.2s;
@@ -200,7 +234,7 @@ footer {
 }
 
 .btn-nostr {
-  background: #ff6b00;
+  background: var(--nostr);
   color: white;
   border: none;
   padding: 10px 20px;
@@ -211,7 +245,7 @@ footer {
 }
 
 .btn-nostr:hover:not(:disabled) {
-  background: #e85a00;
+  background: var(--nostr-dark);
 }
 
 .btn-success {
@@ -229,7 +263,9 @@ footer {
   background: #388e3c;
 }
 
-/* Relay List */
+/* ============================================
+ *  RELAY LIST
+ *  ============================================ */
 .relay-list {
   margin-bottom: 10px;
 }
@@ -254,7 +290,7 @@ footer {
   flex: 1;
   padding: 8px 10px;
   border: 1px solid var(--border);
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   font-size: 13px;
   font-family: monospace;
 }
@@ -282,7 +318,9 @@ footer {
   accent-color: var(--primary);
 }
 
-/* Template Creator */
+/* ============================================
+ *  TEMPLATE CREATOR
+ *  ============================================ */
 .template-creator {
   background: var(--white);
   padding: 30px;
@@ -295,7 +333,9 @@ footer {
   font-size: 22px;
 }
 
-/* Template Applier */
+/* ============================================
+ *  TEMPLATE APPLIER
+ *  ============================================ */
 .template-applier {
   background: var(--white);
   padding: 30px;
@@ -341,7 +381,7 @@ footer {
   display: flex;
   justify-content: space-between;
   padding: 8px 0;
-  border-bottom: 1px solid #f0f0f0;
+  border-bottom: 1px solid var(--border-light);
 }
 
 .relay-preview li:last-child {
@@ -357,7 +397,20 @@ footer {
   font-size: 16px;
 }
 
-/* Status boxes */
+/* ============================================
+ *  AUTH SECTION
+ *  ============================================ */
+.auth-section {
+  padding: 20px;
+  background: #f8f9fa;
+  border-radius: var(--radius);
+  border: 1px solid #e9ecef;
+  margin-bottom: 16px;
+}
+
+/* ============================================
+ *  STATUS BOXES
+ *  ============================================ */
 .error-box,
 .warning,
 .success-box,
@@ -374,28 +427,37 @@ footer {
 }
 
 .warning {
-  background: #fff3e0;
+  background: var(--warning-light);
   border-left: 4px solid var(--warning);
   color: #e65100;
 }
 
 .success-box {
-  background: #e8f5e9;
+  background: var(--success-light);
   border-left: 4px solid var(--success);
   color: #2e7d32;
 }
 
 .info-box {
-  background: #e3f2fd;
-  border-left: 4px solid #2196f3;
+  background: var(--info-light);
+  border-left: 4px solid var(--info);
   color: #0d47a1;
 }
 
-/* Share Box */
+.info-box code {
+  background: rgba(0, 0, 0, 0.08);
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+}
+
+/* ============================================
+ *  SHARE BOX
+ *  ============================================ */
 .share-box {
   margin-top: 24px;
   padding: 20px;
-  background: #e8f5e9;
+  background: var(--success-light);
   border-radius: var(--radius);
   border-left: 4px solid var(--success);
 }
@@ -415,7 +477,7 @@ footer {
   padding: 10px;
   margin: 8px 0;
   border: 1px solid var(--border);
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   font-size: 13px;
   font-family: monospace;
   background: var(--white);
@@ -425,12 +487,14 @@ footer {
   width: auto;
 }
 
-/* Nostr Connect */
+/* ============================================
+ *  NOSTR CONNECT
+ *  ============================================ */
 .nostr-connected {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  background: #e8f5e9;
+  background: var(--success-light);
   padding: 8px 16px;
   border-radius: 20px;
   font-size: 14px;
@@ -438,7 +502,116 @@ footer {
   font-family: monospace;
 }
 
-/* Loading */
+.connection-status {
+  margin: 16px 0;
+}
+
+.connection-status .warning {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.connection-status .warning .btn-nostr {
+  flex-shrink: 0;
+}
+
+/* ============================================
+ *  COMMUNITY TEMPLATES
+ *  ============================================ */
+.community-templates-section {
+  background: #f8f9fa;
+  padding: 16px;
+  border-radius: var(--radius);
+  border: 1px solid #e9ecef;
+  margin-bottom: 24px;
+}
+
+.community-templates-description {
+  font-size: 13px;
+  color: var(--text-light);
+  margin-bottom: 10px;
+}
+
+.community-templates-buttons {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.community-template-btn {
+  padding: 8px 16px;
+  border: 1px solid var(--border);
+  background: var(--white);
+  font-weight: normal;
+  transition: all 0.2s;
+}
+
+.community-template-btn .relay-count {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-left: 4px;
+}
+
+.community-template-info {
+  margin-top: 10px;
+  font-size: 13px;
+  color: var(--text-light);
+  padding: 8px 12px;
+  background: var(--white);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+}
+
+.clear-template-btn {
+  margin-top: 8px;
+  font-size: 12px;
+}
+
+/* Common relay buttons */
+.common-relay-buttons {
+  margin-top: 10px;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.common-relay-btn {
+  font-size: 12px;
+}
+
+/* Toggle and add buttons */
+.toggle-btn {
+  font-size: 12px;
+  padding: 4px 10px;
+}
+
+.add-btn {
+  margin-top: 4px;
+}
+
+.helper-text {
+  font-size: 13px;
+  color: var(--text-light);
+  margin-bottom: 10px;
+}
+
+/* Active template state */
+.active-template {
+  background: var(--primary-light) !important;
+  border-color: var(--primary) !important;
+  color: var(--primary) !important;
+}
+
+.active-template:hover {
+  background: #e8e0ff !important;
+}
+
+/* ============================================
+ *  LOADING
+ *  ============================================ */
 .loading {
   text-align: center;
   padding: 40px;
@@ -446,18 +619,65 @@ footer {
 }
 
 .loading::after {
-  content: '...';
-  animation: dots 1.5s steps(4, end) infinite;
+  content: '';
+  display: inline-block;
+  width: 24px;
+  height: 24px;
+  margin-left: 8px;
+  border: 2px solid var(--border);
+  border-top-color: var(--primary);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
 }
 
-@keyframes dots {
-  0% { content: ''; }
-  25% { content: '.'; }
-  50% { content: '..'; }
-  75% { content: '...'; }
+@keyframes spin {
+  to { transform: rotate(360deg); }
 }
 
-/* Responsive Design */
+/* ============================================
+ *  UTILITY CLASSES
+ *  ============================================ */
+.text-center {
+  text-align: center;
+}
+
+.mt-10 {
+  margin-top: 10px;
+}
+
+.mt-20 {
+  margin-top: 20px;
+}
+
+.mb-10 {
+  margin-bottom: 10px;
+}
+
+.mb-20 {
+  margin-bottom: 20px;
+}
+
+.flex {
+  display: flex;
+}
+
+.flex-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.gap-10 {
+  gap: 10px;
+}
+
+.gap-20 {
+  gap: 20px;
+}
+
+/* ============================================
+ *  RESPONSIVE DESIGN
+ *  ============================================ */
 @media (max-width: 768px) {
   .app {
     padding: 12px;
@@ -507,6 +727,37 @@ footer {
     font-size: 12px;
     text-align: center;
   }
+
+  .connection-status .warning {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .connection-status .warning .btn-nostr {
+    width: 100%;
+  }
+
+  .community-templates-section {
+    padding: 12px;
+  }
+
+  .community-templates-buttons {
+    gap: 6px;
+  }
+
+  .community-template-btn {
+    font-size: 13px;
+    padding: 6px 12px;
+  }
+
+  .common-relay-buttons {
+    gap: 6px;
+  }
+
+  .common-relay-btn {
+    font-size: 11px;
+    padding: 6px 10px;
+  }
 }
 
 @media (max-width: 480px) {
@@ -527,43 +778,263 @@ footer {
   .share-box input {
     font-size: 12px;
   }
+
+  .community-template-btn {
+    font-size: 12px;
+    padding: 4px 10px;
+  }
+
+  .community-template-btn .relay-count {
+    font-size: 10px;
+  }
 }
 
-/* Utility classes */
-.text-center {
-  text-align: center;
-}
+/* ============================================
+ *  DARK MODE SUPPORT
+ *  ============================================ */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --text: #e0e0e0;
+    --text-light: #aaa;
+    --background: #1a1a1a;
+    --white: #2d2d2d;
+    --border: #444;
+    --border-light: #3a3a3a;
+    --shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
+    --secondary: #444;
+  }
 
-.mt-10 {
-  margin-top: 10px;
-}
+  body {
+    background: var(--background);
+    color: var(--text);
+  }
 
-.mt-20 {
-  margin-top: 20px;
-}
+  .template-creator,
+  .template-applier {
+    background: var(--white);
+  }
 
-.mb-10 {
-  margin-bottom: 10px;
-}
+  .template-preview {
+    background: #252525;
+  }
 
-.mb-20 {
-  margin-bottom: 20px;
-}
+  .auth-section {
+    background: #252525;
+    border-color: #333;
+  }
 
-.flex {
-  display: flex;
-}
+  .relay-item {
+    background: #252525;
+  }
 
-.flex-center {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
+  .relay-item:hover {
+    border-color: #666;
+  }
 
-.gap-10 {
-  gap: 10px;
-}
+  /* Form elements */
+  .form-group input,
+  .form-group textarea {
+    background: #252525;
+    color: var(--text);
+    border-color: var(--border);
+  }
 
-.gap-20 {
-  gap: 20px;
+  .form-group input:focus,
+  .form-group textarea:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(124, 77, 255, 0.2);
+  }
+
+  .form-group label {
+    color: var(--text-light);
+  }
+
+  /* Share box */
+  .share-box input {
+    background: #252525;
+    color: var(--text);
+    border-color: var(--border);
+  }
+
+  .share-box {
+    background: #1a2a1a;
+  }
+
+  .share-box h3 {
+    color: #81c784;
+  }
+
+  .share-box p {
+    color: #a5d6a7;
+  }
+
+  /* Buttons */
+  .btn-secondary {
+    background: #444;
+    color: var(--text);
+  }
+
+  .btn-secondary:hover {
+    background: #555;
+  }
+
+  /* Status boxes */
+  .info-box {
+    background: #1a2a3a;
+    color: #90caf9;
+  }
+
+  .success-box {
+    background: #1a2a1a;
+    color: #81c784;
+  }
+
+  .error-box {
+    background: #2a1a1a;
+    color: #ef9a9a;
+  }
+
+  .warning {
+    background: #2a1a0a;
+    color: #ffcc80;
+  }
+
+  /* User badge */
+  .user-badge {
+    background: #1a2a1a;
+    color: #81c784;
+  }
+
+  /* Nostr connected */
+  .nostr-connected {
+    background: #1a2a1a;
+    color: #81c784;
+  }
+
+  /* Connection status */
+  .connection-status .info-box {
+    background: #1a2a3a;
+    color: #90caf9;
+    border-color: #2196f3;
+  }
+
+  .connection-status .info-box code {
+    background: rgba(255, 255, 255, 0.1);
+    color: #90caf9;
+  }
+
+  /* Header */
+  .app-header {
+    border-bottom-color: var(--border);
+  }
+
+  .app-header nav a {
+    color: var(--text-light);
+  }
+
+  .app-header nav a:hover {
+    color: var(--primary);
+  }
+
+  /* Footer */
+  footer {
+    border-top-color: var(--border);
+    color: var(--text-muted);
+  }
+
+  /* Share box button */
+  .share-box .btn-success {
+    background: var(--success);
+  }
+
+  .share-box .btn-success:hover {
+    background: #388e3c;
+  }
+
+  /* Auth section text */
+  .auth-section h4 {
+    color: var(--text);
+  }
+
+  .auth-section p {
+    color: var(--text-light);
+  }
+
+  /* Relay preview */
+  .relay-preview li {
+    border-bottom-color: var(--border-light);
+  }
+
+  .relay-preview h4 {
+    color: var(--text-light);
+  }
+
+  .template-preview > p {
+    color: var(--text-light);
+  }
+
+  .template-preview h3 {
+    color: var(--text);
+  }
+
+  /* Error text in share box */
+  .share-box .error {
+    color: var(--danger);
+  }
+
+  /* ============================================
+   *    DARK MODE - COMMUNITY TEMPLATES
+   *    ============================================ */
+  .community-templates-section {
+    background: #252525;
+    border-color: #333;
+  }
+
+  .community-templates-description {
+    color: var(--text-light);
+  }
+
+  .community-template-btn {
+    background: #2d2d2d;
+    border-color: var(--border);
+    color: var(--text);
+  }
+
+  .community-template-btn:hover {
+    background: #3a3a3a;
+  }
+
+  .community-template-btn .relay-count {
+    color: var(--text-muted);
+  }
+
+  .community-template-info {
+    background: #1a1a1a;
+    border-color: #333;
+    color: var(--text-light);
+  }
+
+  .common-relay-buttons .btn-secondary {
+    background: #2d2d2d;
+    color: var(--text);
+    border-color: var(--border);
+  }
+
+  .common-relay-buttons .btn-secondary:hover {
+    background: #3a3a3a;
+  }
+
+  .helper-text {
+    color: var(--text-light);
+  }
+
+  .active-template {
+    background: var(--primary-light) !important;
+    border-color: var(--primary) !important;
+    color: var(--primary) !important;
+  }
+
+  .active-template:hover {
+    background: #2a1a4a !important;
+  }
 }

@@ -6,16 +6,16 @@ const TemplateCreator = () => {
   const [templateName, setTemplateName] = useState('');
   const [description, setDescription] = useState('');
   const [relays, setRelays] = useState([
-    { url: 'wss://your-cool.relay', read: true, write: true }
+    { url: 'wss://your.relay', read: true, write: true }
   ]);
   
   const [blossomServers, setBlossomServers] = useState([
-    { url: 'https://your-blossom.server' }
+    { url: 'https://your.blossom' }
   ]);
   const [showBlossom, setShowBlossom] = useState(true);
   
   const [dmRelays, setDmRelays] = useState([
-    { url: 'wss://your-dm.relay' }
+    { url: 'wss://dm.relay' }
   ]);
   const [showDmRelays, setShowDmRelays] = useState(true);
   
@@ -128,37 +128,25 @@ const TemplateCreator = () => {
     <div className="template-creator">
       <h2>Create Relay Template</h2>
 
-      <div className="form-group" style={{ 
-        background: '#f8f9fa', 
-        padding: '16px', 
-        borderRadius: '8px',
-        border: '1px solid #e9ecef',
-        marginBottom: '24px'
-      }}>
+      {/* ✅ MOVED INLINE STYLES TO CSS CLASS */}
+      <div className="community-templates-section">
         <label style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           <span style={{ fontSize: '18px' }}>📚</span>
           Community Templates
         </label>
-        <p style={{ fontSize: '13px', color: '#666', marginBottom: '10px' }}>
+        <p className="community-templates-description">
           Load a pre-configured template from popular communities
         </p>
         
-        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+        <div className="community-templates-buttons">
           {Object.entries(communityTemplates).map(([key, template]) => (
             <button
               key={key}
               onClick={() => loadCommunityTemplate(key)}
-              className={`btn-secondary ${selectedTemplate === key ? 'active-template' : ''}`}
-              style={{
-                padding: '8px 16px',
-                border: selectedTemplate === key ? '2px solid #7c4dff' : '1px solid #ddd',
-                background: selectedTemplate === key ? '#f0ebff' : 'white',
-                fontWeight: selectedTemplate === key ? '600' : 'normal',
-                transition: 'all 0.2s'
-              }}
+              className={`btn-secondary community-template-btn ${selectedTemplate === key ? 'active-template' : ''}`}
             >
               {template.name}
-              <span style={{ fontSize: '11px', color: '#999', marginLeft: '4px' }}>
+              <span className="relay-count">
                 ({template.relays.length} relays)
               </span>
             </button>
@@ -166,15 +154,7 @@ const TemplateCreator = () => {
         </div>
         
         {selectedTemplate && (
-          <div style={{ 
-            marginTop: '10px', 
-            fontSize: '13px', 
-            color: '#666',
-            padding: '8px 12px',
-            background: 'white',
-            borderRadius: '4px',
-            border: '1px solid #e9ecef'
-          }}>
+          <div className="community-template-info">
             💡 <strong>{communityTemplates[selectedTemplate].name}:</strong> {communityTemplates[selectedTemplate].description}
           </div>
         )}
@@ -194,8 +174,7 @@ const TemplateCreator = () => {
               setShowBlossom(true);
               setShowDmRelays(true);
             }}
-            className="btn-secondary"
-            style={{ marginTop: '8px', fontSize: '12px' }}
+            className="btn-secondary clear-template-btn"
           >
             ✕ Clear Template
           </button>
@@ -230,35 +209,31 @@ const TemplateCreator = () => {
           onRemove={removeRelay}
         />
         
-        <div style={{ marginTop: '10px', display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+        <div className="common-relay-buttons">
           <button onClick={addRelay} className="btn-secondary">
             + Add Custom Relay
           </button>
           <button 
             onClick={() => addCommonRelay('wss://relay.primal.net')} 
-            className="btn-secondary"
-            style={{ fontSize: '12px' }}
+            className="btn-secondary common-relay-btn"
           >
             + Primal
           </button>
           <button 
             onClick={() => addCommonRelay('wss://relay.damus.io')} 
-            className="btn-secondary"
-            style={{ fontSize: '12px' }}
+            className="btn-secondary common-relay-btn"
           >
             + Damus
           </button>
           <button 
             onClick={() => addCommonRelay('wss://nos.lol')} 
-            className="btn-secondary"
-            style={{ fontSize: '12px' }}
+            className="btn-secondary common-relay-btn"
           >
             + Nos.lol
           </button>
           <button 
             onClick={() => addCommonRelay('wss://relay.snort.social')} 
-            className="btn-secondary"
-            style={{ fontSize: '12px' }}
+            className="btn-secondary common-relay-btn"
           >
             + Snort
           </button>
@@ -270,8 +245,7 @@ const TemplateCreator = () => {
           <label style={{ marginBottom: 0 }}>🌺 Blossom Servers (kind 10063)</label>
           <button 
             onClick={() => setShowBlossom(!showBlossom)}
-            className="btn-secondary"
-            style={{ fontSize: '12px', padding: '4px 10px' }}
+            className="btn-secondary toggle-btn"
           >
             {showBlossom ? 'Hide' : 'Show'}
           </button>
@@ -279,7 +253,7 @@ const TemplateCreator = () => {
         
         {showBlossom && (
           <>
-            <p style={{ fontSize: '13px', color: '#666', marginBottom: '10px' }}>
+            <p className="helper-text">
               Servers used to host your blobs/images. Order determines trust/reliability.
             </p>
             {blossomServers.map((server, index) => (
@@ -301,7 +275,7 @@ const TemplateCreator = () => {
                 </button>
               </div>
             ))}
-            <button onClick={addBlossomServer} className="btn-secondary" style={{ marginTop: '4px' }}>
+            <button onClick={addBlossomServer} className="btn-secondary add-btn">
               + Add Blossom Server
             </button>
           </>
@@ -313,8 +287,7 @@ const TemplateCreator = () => {
           <label style={{ marginBottom: 0 }}>💬 DM Relays (kind 10050)</label>
           <button 
             onClick={() => setShowDmRelays(!showDmRelays)}
-            className="btn-secondary"
-            style={{ fontSize: '12px', padding: '4px 10px' }}
+            className="btn-secondary toggle-btn"
           >
             {showDmRelays ? 'Hide' : 'Show'}
           </button>
@@ -322,7 +295,7 @@ const TemplateCreator = () => {
         
         {showDmRelays && (
           <>
-            <p style={{ fontSize: '13px', color: '#666', marginBottom: '10px' }}>
+            <p className="helper-text">
               Relays used for private messages.
             </p>
             {dmRelays.map((relay, index) => (
@@ -344,7 +317,7 @@ const TemplateCreator = () => {
                 </button>
               </div>
             ))}
-            <button onClick={addDmRelay} className="btn-secondary" style={{ marginTop: '4px' }}>
+            <button onClick={addDmRelay} className="btn-secondary add-btn">
               + Add DM Relay
             </button>
           </>
@@ -366,11 +339,11 @@ const TemplateCreator = () => {
           <h3>✅ Template Created!</h3>
           <p>Share this link with your community:</p>
           <input type="text" value={shareUrl} readOnly />
-          <button onClick={() => navigator.clipboard?.writeText(shareUrl)}>
-            Copy Link
+          <button onClick={() => navigator.clipboard?.writeText(shareUrl)} className="btn-success">
+          Copy Link
           </button>
-          <p style={{ fontSize: '12px', color: '#666', marginTop: '8px' }}>
-            🔒 Template will be published to blast relays (configured in code)
+          <p className="helper-text" style={{ marginTop: '8px' }}>
+            💡 Send this link to a friend. When they visit that page, they can apply these settings and blast them to many relays, so other npubs can find them
           </p>
         </div>
       )}

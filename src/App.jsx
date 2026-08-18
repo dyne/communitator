@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { HashRouter, Routes, Route, Link } from 'react-router-dom';
 import TemplateCreator from './components/TemplateCreator';
 import TemplateApplier from './components/TemplateApplier';
-import './App.css';
+// Remove this line: import './App.css';
 
 function App() {
   const [connectedPubkey, setConnectedPubkey] = useState(null);
