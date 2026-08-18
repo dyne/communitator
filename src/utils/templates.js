@@ -6,15 +6,11 @@
 
 /**
  * Encode a template object into a URL-safe base64 string
- * Using btoa with proper UTF-8 handling
  */
 export const encodeTemplate = (template) => {
   try {
     const json = JSON.stringify(template);
-    // Proper UTF-8 encoding for btoa
-    const utf8Encoded = encodeURIComponent(json);
-    const base64 = btoa(utf8Encoded);
-    return base64;
+    return btoa(encodeURIComponent(json));
   } catch (error) {
     throw new Error('Failed to encode template: ' + error.message);
   }
@@ -25,11 +21,8 @@ export const encodeTemplate = (template) => {
  */
 export const decodeTemplate = (encoded) => {
   try {
-    // First, make sure the string is clean
     const clean = encoded.trim();
-    // Decode from base64
     const decoded = atob(clean);
-    // Decode the URI component
     const json = decodeURIComponent(decoded);
     return JSON.parse(json);
   } catch (error) {
@@ -65,6 +58,7 @@ export const validateTemplate = (template) => {
     throw new Error('Template must have a name');
   }
 
+  // Validate main relays
   if (!Array.isArray(template.relays) || template.relays.length === 0) {
     throw new Error('Template must have at least one relay');
   }
@@ -74,7 +68,6 @@ export const validateTemplate = (template) => {
       throw new Error(`Relay ${index + 1} must have a URL`);
     }
     
-    // Validate URL format
     try {
       const url = new URL(relay.url);
       if (url.protocol !== 'wss:' && url.protocol !== 'ws:') {
@@ -92,6 +85,40 @@ export const validateTemplate = (template) => {
       throw new Error(`Relay ${index + 1} must specify write as boolean`);
     }
   });
+
+  // Validate blossom servers (optional)
+  if (template.blossomServers && Array.isArray(template.blossomServers)) {
+    template.blossomServers.forEach((server, index) => {
+      if (!server.url || typeof server.url !== 'string') {
+        throw new Error(`Blossom server ${index + 1} must have a URL`);
+      }
+      try {
+        const url = new URL(server.url);
+        if (url.protocol !== 'https:' && url.protocol !== 'http:') {
+          throw new Error(`Blossom server ${index + 1} must use https:// or http:// protocol`);
+        }
+      } catch (error) {
+        throw new Error(`Blossom server ${index + 1} has invalid URL: ${server.url}`);
+      }
+    });
+  }
+
+  // Validate DM relays (optional)
+  if (template.dmRelays && Array.isArray(template.dmRelays)) {
+    template.dmRelays.forEach((relay, index) => {
+      if (!relay.url || typeof relay.url !== 'string') {
+        throw new Error(`DM relay ${index + 1} must have a URL`);
+      }
+      try {
+        const url = new URL(relay.url);
+        if (url.protocol !== 'wss:' && url.protocol !== 'ws:') {
+          throw new Error(`DM relay ${index + 1} must use wss:// or ws:// protocol`);
+        }
+      } catch (error) {
+        throw new Error(`DM relay ${index + 1} has invalid URL: ${relay.url}`);
+      }
+    });
+  }
 
   return true;
 };
@@ -123,6 +150,12 @@ export const getDefaultTemplate = () => {
       { url: 'wss://nos.lol', read: true, write: true },
       { url: 'wss://relay.snort.social', read: true, write: true }
     ],
+    blossomServers: [
+      { url: 'https://cdn.satellite.earth' }
+    ],
+    dmRelays: [
+      { url: 'wss://relay.private-msgs.com' }
+    ],
     created_at: Math.floor(Date.now() / 1000)
   };
 };
@@ -132,35 +165,108 @@ export const getDefaultTemplate = () => {
  */
 export const getCommunityTemplates = () => {
   return {
-    'nostr-punks': {
-      id: 'nostr-punks',
-      name: 'Nostr Punks',
-      description: 'Relay set for the Nostr Punks community',
+    'planet-dyne': {
+      id: 'planet-dyne',
+      name: 'Planet Dyne',
+      description: 'Relay set for dynes like you',
       relays: [
-        { url: 'wss://relay.nostr-punks.com', read: true, write: true },
-        { url: 'wss://relay.damus.io', read: true, write: true },
-        { url: 'wss://nostr-pub.wellorder.net', read: true, write: true }
+        { url: 'wss://relay.dyne.org', read: false, write: true },
+        { url: 'wss://relay.dyne.org/inbox', read: true, write: false },
+        { url: 'wss://relay.ditto.pub', read: true, write: true }
+      ],
+      blossomServers: [
+        { url: 'https://relay.dyne.org' },
+        { url: 'https://blossom.primal.net' }
+      ],
+      dmRelays: [
+        { url: 'wss://relay.dyne.org/inbox' }
       ]
     },
-    'plebchain': {
-      id: 'plebchain',
-      name: 'PlebChain',
-      description: 'Relay set for PlebChain community',
+    'basspistol': {
+      id: 'basspistol',
+      name: 'Basspistol',
+      description: 'Relay set for Basspistol outernational music syndicate',
       relays: [
-        { url: 'wss://relay.damus.io', read: true, write: true },
+        { url: 'wss://basspistol.org', read: false, write: true },
+        { url: 'wss://basspistol.org/inbox', read: true, write: false },
+        { url: 'wss://relay.ditto.pub', read: true, write: true }
+      ],
+      blossomServers: [
+        { url: 'https://basspistol.org' },
+        { url: 'https://blossom.primal.net' }
+      ],
+      dmRelays: [
+        { url: 'wss://basspistol.org/inbox' }
+      ]
+    },
+    'spatia-arcana': {
+      id: 'spatia-arcana',
+      name: 'Spatia Arcana',
+      description: 'Relay set for Spatia Arcana',
+      relays: [
+        { url: 'wss://spatia-arcana.com', read: false, write: true },
+        { url: 'wss://spatia-arcana.com/inbox', read: true, write: false },
+        { url: 'wss://relay.ditto.pub', read: true, write: true }
+      ],
+      blossomServers: [
+        { url: 'https://spatia-arcana.com' },
+        { url: 'https://blossom.primal.net' }
+      ],
+      dmRelays: [
+        { url: 'wss://spatia-arcana.com/inbox' }
+      ]
+    },
+    'pyramid-fiatjaf': {
+      id: 'pyramid-fiatjaf',
+      name: 'Fiatjaf Pyramid',
+      description: 'Relay set for Fiatjaf Pyramid',
+      relays: [
+        { url: 'wss://pyramid.fiatjaf.com', read: false, write: true },
+        { url: 'wss://pyramid.fiatjaf.com/inbox', read: true, write: false },
+        { url: 'wss://relay.ditto.pub', read: true, write: true }
+      ],
+      blossomServers: [
+        { url: 'https://pyramid.fiatjaf.com' },
+        { url: 'https://blossom.primal.net' }
+      ],
+      dmRelays: [
+        { url: 'wss://pyramid.fiatjaf.com/inbox' }
+      ]
+    },
+    'neuch-blockchain': {
+      id: 'neuch-blockchain',
+      name: 'Neuchatel Blockchain',
+      description: 'Relay set for Neuchatel Blockchain community',
+      relays: [
+        { url: 'wss://nestr.nedao.ch', read: false, write: true },
+        { url: 'wss://nestr.nedao.ch/inbox', read: true, write: false },
+        { url: 'wss://relay.ditto.pub', read: true, write: true }
+      ],
+      blossomServers: [
+        { url: 'https://nestr.nedao.ch' },
+        { url: 'https://blossom.primal.net' }
+      ],
+      dmRelays: [
+        { url: 'wss://nestr.nedao.ch/inbox' }
+      ]
+    },
+    'anon': {
+      id: 'anon',
+      name: 'Anon Relays',
+      description: 'Relay set for anons',
+      relays: [
         { url: 'wss://nos.lol', read: true, write: true },
-        { url: 'wss://relay.snort.social', read: true, write: true },
-        { url: 'wss://offchain.pub', read: true, write: true }
+        { url: 'wss://nostr.mom', read: true, write: true },
+        { url: 'wss://relay.ditto.pub', read: true, write: true }
+      ],
+      blossomServers: [
+        { url: 'https://spatia-arcana.com' },
+        { url: 'https://blossom.primal.net' }
+      ],
+      dmRelays: [
+        { url: 'wss://spatia-arcana.com/inbox' }
       ]
     },
-    'minimal': {
-      id: 'minimal',
-      name: 'Minimal Set',
-      description: 'Just the essentials to get started',
-      relays: [
-        { url: 'wss://relay.damus.io', read: true, write: true }
-      ]
-    }
   };
 };
 
@@ -178,7 +284,6 @@ export const addRelayToTemplate = (template, relay) => {
     throw new Error('Relay must have a URL');
   }
   
-  // Check if relay already exists
   if (template.relays.some(r => r.url === relay.url)) {
     throw new Error('Relay already exists in template');
   }
@@ -264,6 +369,8 @@ export const kind10002TagsToTemplate = (tags, name = 'Imported Relays') => {
     name: name,
     description: `Imported from existing relay set`,
     relays: relays,
+    blossomServers: [],
+    dmRelays: [],
     created_at: Math.floor(Date.now() / 1000)
   };
 };
@@ -283,10 +390,8 @@ export const saveTemplateToStorage = (template) => {
     ...template,
     saved_at: Date.now()
   };
-  // Remove duplicates
   const filtered = history.filter(h => h.id !== template.id);
   filtered.unshift(entry);
-  // Keep last 50 templates
   localStorage.setItem('templateHistory', JSON.stringify(filtered.slice(0, 50)));
   return entry;
 };

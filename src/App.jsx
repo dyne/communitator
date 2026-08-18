@@ -11,7 +11,7 @@ function App() {
     <HashRouter>
       <div className="app">
         <header className="app-header">
-          <h1>⚡ Relay Template</h1>
+          <h1>⚡ Communitator</h1>
           <nav>
             <Link to="/">🏠 Create Template</Link>
             {/* Remove the broken link - users will access /apply/:encoded via generated links */}

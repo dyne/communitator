@@ -3,15 +3,21 @@ import { Link, useParams } from 'react-router-dom';
 import { decodeTemplate, validateTemplate } from '../utils/templates';
 import useNostr from '../hooks/useNostr';
 
+// Define BLAST_RELAYS here
+const BLAST_RELAYS = [
+  'wss://relay.primal.net',
+  'wss://relay.damus.io',
+  'wss://nos.lol'
+];
+
 const TemplateApplier = ({ connectedPubkey, setConnectedPubkey }) => {
   const { encoded } = useParams();
   const [template, setTemplate] = useState(null);
   const [error, setError] = useState('');
   const [applying, setApplying] = useState(false);
   const [results, setResults] = useState(null);
-  const [publishResults, setPublishResults] = useState(null);
   const [isConnecting, setIsConnecting] = useState(false);
-  const { publishKind10002, isConnected, connect, pubkey } = useNostr();
+  const { publishKind10002, publishKind10050, publishKind10063, isConnected, connect, pubkey } = useNostr();
 
   useEffect(() => {
     if (!encoded) {
@@ -20,7 +26,6 @@ const TemplateApplier = ({ connectedPubkey, setConnectedPubkey }) => {
     }
 
     try {
-      // Decode and validate the template
       const decoded = decodeTemplate(encoded);
       validateTemplate(decoded);
       setTemplate(decoded);
@@ -31,7 +36,6 @@ const TemplateApplier = ({ connectedPubkey, setConnectedPubkey }) => {
     }
   }, [encoded]);
 
-  // Update parent when connection changes
   useEffect(() => {
     if (pubkey && !connectedPubkey) {
       setConnectedPubkey(pubkey);
@@ -56,14 +60,12 @@ const TemplateApplier = ({ connectedPubkey, setConnectedPubkey }) => {
 
     setApplying(true);
     setError('');
-    setPublishResults(null);
+    setResults(null);
 
     try {
-      // Get pubkey from parent or hook
       let pubkeyToUse = connectedPubkey || pubkey;
       
       if (!pubkeyToUse) {
-        // Try to connect
         try {
           pubkeyToUse = await connect();
           setConnectedPubkey(pubkeyToUse);
@@ -76,35 +78,88 @@ const TemplateApplier = ({ connectedPubkey, setConnectedPubkey }) => {
         throw new Error('No Nostr public key available. Please connect your extension.');
       }
 
-      // Publish the kind 10002 event
-      const result = await publishKind10002(template.relays, pubkeyToUse);
-      
-      setPublishResults({
-        success: true,
-        eventId: result.event.id,
-        publishedTo: result.results.filter(r => r.success).length,
-        totalRelays: result.results.length,
-        details: result.results
-      });
+      const allResults = [];
+      const publishConfigs = [];
+
+      // 1. Publish kind 10002 (relays)
+      if (template.relays && template.relays.length > 0) {
+        publishConfigs.push({
+          name: 'Relays (kind 10002)',
+          kind: '10002',
+          relays: template.relays,
+          publishFn: () => publishKind10002(template.relays, pubkeyToUse)
+        });
+      }
+
+      // 2. Publish kind 10063 (blossom servers)
+      if (template.blossomServers && template.blossomServers.length > 0) {
+        publishConfigs.push({
+          name: 'Blossom Servers (kind 10063)',
+          kind: '10063',
+          relays: template.blossomServers.map(s => ({ url: s.url, read: true, write: true })),
+          publishFn: () => publishKind10063(template.blossomServers, pubkeyToUse)
+        });
+      }
+
+      // 3. Publish kind 10050 (DM relays)
+      if (template.dmRelays && template.dmRelays.length > 0) {
+        publishConfigs.push({
+          name: 'DM Relays (kind 10050)',
+          kind: '10050',
+          relays: template.dmRelays.map(r => ({ url: r.url, read: true, write: true })),
+          publishFn: () => publishKind10050(template.dmRelays, pubkeyToUse)
+        });
+      }
+
+      if (publishConfigs.length === 0) {
+        throw new Error('No events to publish');
+      }
+
+      // Publish each kind
+      for (const config of publishConfigs) {
+        console.log(`Publishing ${config.name}...`);
+        try {
+          const result = await config.publishFn();
+          
+          const successCount = result.results.filter(r => r.success).length;
+          const blastSuccess = result.blastResults ? result.blastResults.filter(r => r.success).length : 0;
+          const userSuccess = result.userResults ? result.userResults.filter(r => r.success).length : 0;
+          
+          allResults.push({
+            kind: config.kind,
+            name: config.name,
+            success: successCount > 0,
+            eventId: result.event.id,
+            publishedTo: successCount,
+            totalRelays: result.results.length,
+            blastPublished: blastSuccess,
+            blastTotal: result.blastResults ? result.blastResults.length : 0,
+            userPublished: userSuccess,
+            userTotal: result.userResults ? result.userResults.length : 0,
+            details: result.results
+          });
+        } catch (err) {
+          allResults.push({
+            kind: config.kind,
+            name: config.name,
+            success: false,
+            error: err.message
+          });
+        }
+      }
 
       setResults({
-        success: true,
-        eventId: result.event.id,
-        published: result.event
+        success: allResults.some(r => r.success),
+        events: allResults
       });
 
     } catch (err) {
       setError('Failed to apply template: ' + err.message);
-      setPublishResults({
-        success: false,
-        error: err.message
-      });
     } finally {
       setApplying(false);
     }
   };
 
-  // Handle case where template fails to decode
   if (error && !template) {
     return (
       <div className="template-applier">
@@ -112,9 +167,6 @@ const TemplateApplier = ({ connectedPubkey, setConnectedPubkey }) => {
         <div className="error-box">
           <h3>❌ Error Loading Template</h3>
           <p>{error}</p>
-          <p style={{ marginTop: '10px', fontSize: '14px', color: '#666' }}>
-            The link you clicked may be malformed or expired. Please try generating a new template.
-          </p>
           <Link to="/" className="btn-primary" style={{ display: 'inline-block', marginTop: '10px', width: 'auto' }}>
             ← Go Back to Create
           </Link>
@@ -144,8 +196,9 @@ const TemplateApplier = ({ connectedPubkey, setConnectedPubkey }) => {
           </p>
         )}
         
+        {/* Main Relays */}
         <div className="relay-preview">
-          <h4>📡 Relays in this template ({template.relays.length}):</h4>
+          <h4>📡 Relays ({template.relays.length}):</h4>
           <ul>
             {template.relays.map((relay, index) => (
               <li key={index}>
@@ -158,9 +211,40 @@ const TemplateApplier = ({ connectedPubkey, setConnectedPubkey }) => {
             ))}
           </ul>
         </div>
+
+        {/* Blossom Servers */}
+        {template.blossomServers && template.blossomServers.length > 0 && (
+          <div className="relay-preview" style={{ marginTop: '16px' }}>
+            <h4>🌺 Blossom Servers ({template.blossomServers.length}):</h4>
+            <ul>
+              {template.blossomServers.map((server, index) => (
+                <li key={index}>
+                  <span className="relay-url">{server.url}</span>
+                  <span style={{ fontSize: '12px', color: '#999' }}>
+                    #{index + 1} {index === 0 ? '⭐ Most trusted' : ''}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {/* DM Relays */}
+        {template.dmRelays && template.dmRelays.length > 0 && (
+          <div className="relay-preview" style={{ marginTop: '16px' }}>
+            <h4>💬 DM Relays ({template.dmRelays.length}):</h4>
+            <ul>
+              {template.dmRelays.map((relay, index) => (
+                <li key={index}>
+                  <span className="relay-url">{relay.url}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
       </div>
 
-      {/* Connection Status & Button */}
+      {/* Connection Status */}
       <div className="connection-status" style={{ marginBottom: '16px' }}>
         {(connectedPubkey || pubkey) ? (
           <div className="info-box">
@@ -201,42 +285,77 @@ const TemplateApplier = ({ connectedPubkey, setConnectedPubkey }) => {
         </button>
       )}
 
-      {/* Error Display */}
       {error && !results && (
         <div className="error-box" style={{ marginTop: '16px' }}>
           <strong>Error:</strong> {error}
         </div>
       )}
 
-      {/* Success Results */}
-      {publishResults && publishResults.success && (
+      {/* Results */}
+      {results && results.events && (
         <div className="success-box" style={{ marginTop: '20px' }}>
-          <h3>✅ Template Applied Successfully!</h3>
-          <p style={{ marginTop: '8px' }}>
-            Published to <strong>{publishResults.publishedTo}</strong> of {publishResults.totalRelays} relays
-          </p>
-          <p style={{ fontSize: '13px', color: '#555', marginTop: '4px' }}>
-            Event ID: <code style={{ fontSize: '12px', wordBreak: 'break-all' }}>
-              {publishResults.eventId}
-            </code>
-          </p>
+          <h3>
+            {results.success ? '✅ Template Applied Successfully!' : '⚠️ Some Events Failed'}
+          </h3>
           
-          <details style={{ marginTop: '12px' }}>
-            <summary style={{ cursor: 'pointer', color: '#2e7d32' }}>
-              📊 Publication Details
-            </summary>
-            <ul style={{ marginTop: '8px', fontSize: '13px' }}>
-              {publishResults.details.map((result, index) => (
-                <li key={index} style={{ 
-                  padding: '4px 0',
-                  color: result.success ? '#2e7d32' : '#c62828'
-                }}>
-                  {result.success ? '✅' : '❌'} {result.url}
-                  {result.error && ` - ${result.error}`}
-                </li>
-              ))}
-            </ul>
-          </details>
+          {results.events.map((event, index) => (
+            <div key={index} style={{ 
+              marginTop: '12px', 
+              padding: '16px',
+              background: event.success ? 'rgba(76, 175, 80, 0.1)' : 'rgba(255, 82, 82, 0.1)',
+              borderRadius: '6px',
+              border: event.success ? '1px solid #4caf50' : '1px solid #ff5252'
+            }}>
+              <strong>{event.name}</strong>
+              {event.success ? (
+                <>
+                  <p style={{ marginTop: '4px' }}>
+                    ✅ Published to <strong>{event.publishedTo}</strong> of {event.totalRelays} relays
+                  </p>
+                  
+                  {event.blastTotal > 0 && (
+                    <p style={{ fontSize: '13px', color: '#555' }}>
+                      📡 Blast relays: <strong>{event.blastPublished}/{event.blastTotal}</strong>
+                    </p>
+                  )}
+                  
+                  {event.userTotal > 0 && (
+                    <p style={{ fontSize: '13px', color: '#555' }}>
+                      👤 Your relays: <strong>{event.userPublished}/{event.userTotal}</strong>
+                    </p>
+                  )}
+                  
+                  <p style={{ fontSize: '12px', color: '#555', marginTop: '4px' }}>
+                    Event ID: <code style={{ fontSize: '11px', wordBreak: 'break-all' }}>
+                      {event.eventId}
+                    </code>
+                  </p>
+                  
+                  <details style={{ marginTop: '8px' }}>
+                    <summary style={{ cursor: 'pointer', color: '#2e7d32', fontSize: '13px' }}>
+                      📊 Publication Details ({event.publishedTo} successful)
+                    </summary>
+                    <ul style={{ marginTop: '8px', fontSize: '12px', maxHeight: '200px', overflowY: 'auto' }}>
+                      {event.details.map((result, idx) => (
+                        <li key={idx} style={{ 
+                          padding: '2px 0',
+                          color: result.success ? '#2e7d32' : '#c62828'
+                        }}>
+                          {result.success ? '✅' : '❌'} {result.url}
+                          {result.error && ` - ${result.error}`}
+                          {BLAST_RELAYS.includes(result.url) && ' 🔥'}
+                        </li>
+                      ))}
+                    </ul>
+                  </details>
+                </>
+              ) : (
+                <p style={{ color: '#c62828', marginTop: '4px' }}>
+                  ❌ Failed: {event.error}
+                </p>
+              )}
+            </div>
+          ))}
 
           <div style={{ marginTop: '16px', display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
             <Link to="/" className="btn-secondary">
@@ -249,21 +368,6 @@ const TemplateApplier = ({ connectedPubkey, setConnectedPubkey }) => {
               🔄 Apply Again
             </button>
           </div>
-        </div>
-      )}
-
-      {/* Error Results */}
-      {publishResults && !publishResults.success && (
-        <div className="error-box" style={{ marginTop: '20px' }}>
-          <h3>❌ Failed to Publish</h3>
-          <p>{publishResults.error}</p>
-          <button 
-            onClick={() => setPublishResults(null)}
-            className="btn-secondary"
-            style={{ marginTop: '10px' }}
-          >
-            Try Again
-          </button>
         </div>
       )}
     </div>

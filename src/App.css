@@ -68,6 +68,7 @@ footer {
 /* Form Styles */
 .form-group {
   margin-bottom: 20px;
+  margin-top: 20px;
 }
 
 .form-group label {
@@ -333,4 +334,15 @@ footer {
   padding: 2px 8px;
   border-radius: 4px;
   font-size: 13px;
+}
+
+/* Community Templates */
+.active-template {
+  background: #f0ebff !important;
+  border-color: #7c4dff !important;
+  color: #7c4dff !important;
+}
+
+.active-template:hover {
+  background: #e8e0ff !important;
 }
