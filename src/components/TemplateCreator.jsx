@@ -126,7 +126,7 @@ const TemplateCreator = () => {
 
   return (
     <div className="template-creator">
-      <h2>Create Relay Template</h2>
+      <h2>Create Settings Template</h2>
 
       {/* ✅ MOVED INLINE STYLES TO CSS CLASS */}
       <div className="community-templates-section">
@@ -202,7 +202,7 @@ const TemplateCreator = () => {
       </div>
 
       <div className="form-group">
-        <label>Relays *</label>
+        <label>📡 Relays *</label>
         <RelayList
           relays={relays}
           onUpdate={updateRelay}
