@@ -204,8 +204,8 @@ const TemplateApplier = ({ connectedPubkey, setConnectedPubkey }) => {
               <li key={index}>
                 <span className="relay-url">{relay.url}</span>
                 <span className="relay-permissions">
-                  {relay.read ? '📖 Read' : '🔒 No Read'} 
-                  {relay.write ? ' ✍️ Write' : ' 🔒 No Write'}
+                  {relay.read ? '📖 Read' : ''}
+                  {relay.write ? ' ✍️ Write' : ''}
                 </span>
               </li>
             ))}
@@ -221,7 +221,7 @@ const TemplateApplier = ({ connectedPubkey, setConnectedPubkey }) => {
                 <li key={index}>
                   <span className="relay-url">{server.url}</span>
                   <span style={{ fontSize: '12px', color: '#999' }}>
-                    #{index + 1} {index === 0 ? '⭐ Most trusted' : ''}
+                    #{index + 1} {index === 0 ? '⭐ Perferred' : ''}
                   </span>
                 </li>
               ))}
