@@ -260,11 +260,11 @@ export const getCommunityTemplates = () => {
         { url: 'wss://relay.ditto.pub', read: true, write: true }
       ],
       blossomServers: [
-        { url: 'https://spatia-arcana.com' },
         { url: 'https://blossom.primal.net' }
       ],
       dmRelays: [
-        { url: 'wss://spatia-arcana.com/inbox' }
+        { url: 'wss://nos.lol' },
+        { url: 'wss://relay.ditto.pub' }
       ]
     },
   };
