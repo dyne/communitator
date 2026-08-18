@@ -80,7 +80,7 @@ const TemplateApplier = ({ setConnectedPubkey }) => {
         throw new Error('Please connect your Nostr signer first');
       }
 
-      // ✅ Collect ALL user relay URLs from the main relays
+      // Collect ALL user relay URLs from the main relays
       const allUserRelays = template.relays.map(r => r.url);
 
       const allResults = [];
@@ -95,7 +95,7 @@ const TemplateApplier = ({ setConnectedPubkey }) => {
         });
       }
 
-      // 2. Publish kind 10063 (blossom servers) - ✅ Pass all user relays
+      // 2. Publish kind 10063 (blossom servers)
       if (template.blossomServers && template.blossomServers.length > 0) {
         publishConfigs.push({
           name: 'Blossom Servers (kind 10063)',
@@ -104,7 +104,7 @@ const TemplateApplier = ({ setConnectedPubkey }) => {
         });
       }
 
-      // 3. Publish kind 10050 (DM relays) - ✅ Pass all user relays
+      // 3. Publish kind 10050 (DM relays)
       if (template.dmRelays && template.dmRelays.length > 0) {
         publishConfigs.push({
           name: 'DM Relays (kind 10050)',

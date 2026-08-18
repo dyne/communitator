@@ -14,7 +14,6 @@ function App() {
           <h1>⚡ Communitator</h1>
           <nav>
             <Link to="/">🏠 Create Template</Link>
-            {/* Remove the broken link - users will access /apply/:encoded via generated links */}
           </nav>
           {connectedPubkey && (
             <div className="user-badge">
@@ -24,16 +23,22 @@ function App() {
         </header>
         <main>
           <Routes>
-            <Route path="/" element={
-              <TemplateCreator setConnectedPubkey={setConnectedPubkey} />
-            } />
-            <Route path="/apply/:encoded" element={
-              <TemplateApplier connectedPubkey={connectedPubkey} setConnectedPubkey={setConnectedPubkey} />
-            } />
+            <Route path="/" element={<TemplateCreator />} />
+            <Route path="/apply/:encoded" element={<TemplateApplier setConnectedPubkey={setConnectedPubkey} />} />
           </Routes>
         </main>
         <footer>
-          <p>Self-contained • Built with Nostr</p>
+          <p>
+            Built with Nostr &middot;{' '}
+            <a 
+              href="https://git.basspistol.org/hq/Communitator" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              style={{ color: 'inherit', textDecoration: 'underline' }}
+            >
+              Source Code
+            </a>
+          </p>
         </footer>
       </div>
     </HashRouter>

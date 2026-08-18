@@ -10,7 +10,7 @@ const TemplateCreator = () => {
   ]);
   
   const [blossomServers, setBlossomServers] = useState([
-    { url: 'https://your-blossom.community' }
+    { url: 'https://your-blossom.server' }
   ]);
   const [showBlossom, setShowBlossom] = useState(true);
   
@@ -51,7 +51,6 @@ const TemplateCreator = () => {
     }
   };
 
-  // Relay functions
   const addRelay = () => {
     setRelays([...relays, { url: '', read: true, write: true }]);
   };
@@ -72,7 +71,6 @@ const TemplateCreator = () => {
     }
   };
 
-  // Blossom server functions
   const addBlossomServer = () => {
     setBlossomServers([...blossomServers, { url: '' }]);
   };
@@ -87,7 +85,6 @@ const TemplateCreator = () => {
     setBlossomServers(updated);
   };
 
-  // DM relay functions
   const addDmRelay = () => {
     setDmRelays([...dmRelays, { url: '' }]);
   };
@@ -131,7 +128,6 @@ const TemplateCreator = () => {
     <div className="template-creator">
       <h2>Create Relay Template</h2>
 
-      {/* Community Templates Section */}
       <div className="form-group" style={{ 
         background: '#f8f9fa', 
         padding: '16px', 
@@ -226,9 +222,8 @@ const TemplateCreator = () => {
         />
       </div>
 
-      {/* Main Relays Section */}
       <div className="form-group">
-        <label>📡 Relays *</label>
+        <label>Relays *</label>
         <RelayList
           relays={relays}
           onUpdate={updateRelay}
@@ -270,7 +265,6 @@ const TemplateCreator = () => {
         </div>
       </div>
 
-      {/* Blossom Servers Section */}
       <div className="form-group">
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
           <label style={{ marginBottom: 0 }}>🌺 Blossom Servers (kind 10063)</label>
@@ -314,7 +308,6 @@ const TemplateCreator = () => {
         )}
       </div>
 
-      {/* DM Relays Section */}
       <div className="form-group">
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
           <label style={{ marginBottom: 0 }}>💬 DM Relays (kind 10050)</label>

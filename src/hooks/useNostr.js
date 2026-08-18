@@ -184,13 +184,6 @@ export const useNostr = () => {
   // PUBLISH KIND FUNCTIONS
   // ============================================================
 
-  /**
-   * Generic publish function that publishes to ALL relays
-   * @param {number} kind - Event kind
-   * @param {object} data - Event data with tags and content
-   * @param {string} pubkey - User's pubkey
-   * @param {string[]} userRelayUrls - User's relay URLs (all of them, not just for this kind)
-   */
   const publishKind = useCallback(async (kind, data, pubkey, userRelayUrls = []) => {
     if (!extension) {
       throw new Error('No Nostr extension connected');
@@ -208,7 +201,6 @@ export const useNostr = () => {
     const signedEvent = await signEvent(event);
     console.log(`Kind ${kind} event signed successfully`);
 
-    // ✅ Combine ALL relays: blast + ALL user relays
     const allRelays = [...new Set([...BLAST_RELAYS, ...userRelayUrls])];
     console.log(`Publishing kind ${kind} to ${allRelays.length} relays (${BLAST_RELAYS.length} blast + ${userRelayUrls.length} user)`);
 
@@ -225,7 +217,6 @@ export const useNostr = () => {
     };
   }, [extension, signEvent, publishToRelays]);
 
-  // Kind 10002 - Relays
   const publishKind10002 = useCallback(async (relays, pubkey) => {
     const validRelays = relays.filter(r => r.url && r.url.trim() !== '');
     if (validRelays.length === 0) {
@@ -237,30 +228,25 @@ export const useNostr = () => {
       if (!relay.write) params.push('write');
       return ['r', relay.url, ...params];
     });
-    // ✅ Pass ALL user relay URLs (they're the same as the relays being published)
     const userRelayUrls = validRelays.map(r => r.url);
     return await publishKind(10002, { tags }, pubkey, userRelayUrls);
   }, [publishKind]);
 
-  // Kind 10063 - Blossom Servers
   const publishKind10063 = useCallback(async (servers, pubkey, allUserRelays = []) => {
     const validServers = servers.filter(s => s.url && s.url.trim() !== '');
     if (validServers.length === 0) {
       throw new Error('No valid blossom servers');
     }
     const tags = validServers.map(server => ['server', server.url]);
-    // ✅ Pass ALL user relays (main relays, not just blossom servers)
     return await publishKind(10063, { tags }, pubkey, allUserRelays);
   }, [publishKind]);
 
-  // Kind 10050 - DM Relays
   const publishKind10050 = useCallback(async (relays, pubkey, allUserRelays = []) => {
     const validRelays = relays.filter(r => r.url && r.url.trim() !== '');
     if (validRelays.length === 0) {
       throw new Error('No valid DM relays');
     }
     const tags = validRelays.map(relay => ['relay', relay.url]);
-    // ✅ Pass ALL user relays (main relays, not just DM relays)
     return await publishKind(10050, { tags }, pubkey, allUserRelays);
   }, [publishKind]);
 

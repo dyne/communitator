@@ -4,7 +4,6 @@ const NostrConnect = ({ setConnectedPubkey }) => {
   const [pubkey, setPubkey] = useState(null);
   const [loading, setLoading] = useState(false);
 
-  // Check if already connected
   useEffect(() => {
     if (window.nostr?.getPublicKey) {
       window.nostr.getPublicKey()
