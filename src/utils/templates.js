@@ -168,7 +168,7 @@ export const getCommunityTemplates = () => {
     'planet-dyne': {
       id: 'planet-dyne',
       name: 'Planet Dyne',
-      description: 'Relay set for dynes like you',
+      description: 'Settings for dynes like you',
       relays: [
         { url: 'wss://relay.dyne.org', read: false, write: true },
         { url: 'wss://relay.dyne.org/inbox', read: true, write: false },
@@ -185,7 +185,7 @@ export const getCommunityTemplates = () => {
     'basspistol': {
       id: 'basspistol',
       name: 'Basspistol',
-      description: 'Relay set for Basspistol outernational music syndicate',
+      description: 'Settings for Basspistol members of the outernational music syndicate',
       relays: [
         { url: 'wss://basspistol.org', read: false, write: true },
         { url: 'wss://basspistol.org/inbox', read: true, write: false },
@@ -202,7 +202,7 @@ export const getCommunityTemplates = () => {
     'spatia-arcana': {
       id: 'spatia-arcana',
       name: 'Spatia Arcana',
-      description: 'Relay set for Spatia Arcana',
+      description: 'Settings for Spatia Arcana',
       relays: [
         { url: 'wss://spatia-arcana.com', read: false, write: true },
         { url: 'wss://spatia-arcana.com/inbox', read: true, write: false },
@@ -219,7 +219,7 @@ export const getCommunityTemplates = () => {
     'pyramid-fiatjaf': {
       id: 'pyramid-fiatjaf',
       name: 'Fiatjaf Pyramid',
-      description: 'Relay set for Fiatjaf Pyramid',
+      description: 'Settings for Fiatjaf Pyramid',
       relays: [
         { url: 'wss://pyramid.fiatjaf.com', read: false, write: true },
         { url: 'wss://pyramid.fiatjaf.com/inbox', read: true, write: false },
@@ -236,7 +236,7 @@ export const getCommunityTemplates = () => {
     'neuch-blockchain': {
       id: 'neuch-blockchain',
       name: 'Neuchatel Blockchain',
-      description: 'Relay set for Neuchatel Blockchain community',
+      description: 'Settings for Neuchatel Blockchain community',
       relays: [
         { url: 'wss://nestr.nedao.ch', read: false, write: true },
         { url: 'wss://nestr.nedao.ch/inbox', read: true, write: false },
@@ -253,7 +253,7 @@ export const getCommunityTemplates = () => {
     'anon': {
       id: 'anon',
       name: 'Anon Relays',
-      description: 'Relay set for anons',
+      description: 'Settings set for anons',
       relays: [
         { url: 'wss://nos.lol', read: true, write: true },
         { url: 'wss://nostr.mom', read: true, write: true },
