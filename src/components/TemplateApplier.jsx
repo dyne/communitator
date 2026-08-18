@@ -2,23 +2,52 @@ import React, { useState, useEffect } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { decodeTemplate, validateTemplate } from '../utils/templates';
 import useNostr from '../hooks/useNostr';
+import NostrConnect from './NostrConnect';
 
-// Define BLAST_RELAYS here
-const BLAST_RELAYS = [
-  'wss://relay.primal.net',
-  'wss://relay.damus.io',
-  'wss://nos.lol'
-];
-
-const TemplateApplier = ({ connectedPubkey, setConnectedPubkey }) => {
+const TemplateApplier = ({ setConnectedPubkey }) => {
   const { encoded } = useParams();
+  const nostr = useNostr();
+  
   const [template, setTemplate] = useState(null);
   const [error, setError] = useState('');
   const [applying, setApplying] = useState(false);
   const [results, setResults] = useState(null);
-  const [isConnecting, setIsConnecting] = useState(false);
-  const { publishKind10002, publishKind10050, publishKind10063, isConnected, connect, pubkey } = useNostr();
 
+  // ============================================================
+  // CONNECTION CHECK
+  // ============================================================
+  useEffect(() => {
+    const checkConnection = async () => {
+      if (nostr.pubkey) {
+        setConnectedPubkey(nostr.pubkey);
+        return;
+      }
+
+      if (window.nostr?.getPublicKey) {
+        try {
+          const pk = await window.nostr.getPublicKey();
+          if (pk) {
+            await nostr.connect();
+            setConnectedPubkey(pk);
+          }
+        } catch (e) {
+          console.log('Extension not authorized');
+        }
+      }
+    };
+
+    checkConnection();
+  }, []);
+
+  useEffect(() => {
+    if (nostr.pubkey) {
+      setConnectedPubkey(nostr.pubkey);
+    }
+  }, [nostr.pubkey, setConnectedPubkey]);
+
+  // ============================================================
+  // LOAD TEMPLATE
+  // ============================================================
   useEffect(() => {
     if (!encoded) {
       setError('No template provided');
@@ -36,25 +65,9 @@ const TemplateApplier = ({ connectedPubkey, setConnectedPubkey }) => {
     }
   }, [encoded]);
 
-  useEffect(() => {
-    if (pubkey && !connectedPubkey) {
-      setConnectedPubkey(pubkey);
-    }
-  }, [pubkey, connectedPubkey, setConnectedPubkey]);
-
-  const handleConnect = async () => {
-    setIsConnecting(true);
-    try {
-      const pk = await connect();
-      setConnectedPubkey(pk);
-      setError('');
-    } catch (err) {
-      setError('Failed to connect: ' + err.message);
-    } finally {
-      setIsConnecting(false);
-    }
-  };
-
+  // ============================================================
+  // PUBLISH FUNCTIONS
+  // ============================================================
   const handleApplyTemplate = async () => {
     if (!template) return;
 
@@ -63,20 +76,12 @@ const TemplateApplier = ({ connectedPubkey, setConnectedPubkey }) => {
     setResults(null);
 
     try {
-      let pubkeyToUse = connectedPubkey || pubkey;
-      
-      if (!pubkeyToUse) {
-        try {
-          pubkeyToUse = await connect();
-          setConnectedPubkey(pubkeyToUse);
-        } catch (err) {
-          throw new Error('Please connect your Nostr extension first');
-        }
+      if (!nostr.pubkey) {
+        throw new Error('Please connect your Nostr signer first');
       }
 
-      if (!pubkeyToUse) {
-        throw new Error('No Nostr public key available. Please connect your extension.');
-      }
+      // ✅ Collect ALL user relay URLs from the main relays
+      const allUserRelays = template.relays.map(r => r.url);
 
       const allResults = [];
       const publishConfigs = [];
@@ -86,28 +91,25 @@ const TemplateApplier = ({ connectedPubkey, setConnectedPubkey }) => {
         publishConfigs.push({
           name: 'Relays (kind 10002)',
           kind: '10002',
-          relays: template.relays,
-          publishFn: () => publishKind10002(template.relays, pubkeyToUse)
+          publishFn: () => nostr.publishKind10002(template.relays, nostr.pubkey)
         });
       }
 
-      // 2. Publish kind 10063 (blossom servers)
+      // 2. Publish kind 10063 (blossom servers) - ✅ Pass all user relays
       if (template.blossomServers && template.blossomServers.length > 0) {
         publishConfigs.push({
           name: 'Blossom Servers (kind 10063)',
           kind: '10063',
-          relays: template.blossomServers.map(s => ({ url: s.url, read: true, write: true })),
-          publishFn: () => publishKind10063(template.blossomServers, pubkeyToUse)
+          publishFn: () => nostr.publishKind10063(template.blossomServers, nostr.pubkey, allUserRelays)
         });
       }
 
-      // 3. Publish kind 10050 (DM relays)
+      // 3. Publish kind 10050 (DM relays) - ✅ Pass all user relays
       if (template.dmRelays && template.dmRelays.length > 0) {
         publishConfigs.push({
           name: 'DM Relays (kind 10050)',
           kind: '10050',
-          relays: template.dmRelays.map(r => ({ url: r.url, read: true, write: true })),
-          publishFn: () => publishKind10050(template.dmRelays, pubkeyToUse)
+          publishFn: () => nostr.publishKind10050(template.dmRelays, nostr.pubkey, allUserRelays)
         });
       }
 
@@ -160,6 +162,10 @@ const TemplateApplier = ({ connectedPubkey, setConnectedPubkey }) => {
     }
   };
 
+  // ============================================================
+  // RENDER
+  // ============================================================
+
   if (error && !template) {
     return (
       <div className="template-applier">
@@ -183,6 +189,8 @@ const TemplateApplier = ({ connectedPubkey, setConnectedPubkey }) => {
     );
   }
 
+  const isConnected = nostr.isConnected && nostr.pubkey;
+
   return (
     <div className="template-applier">
       <h2>Apply Relay Template</h2>
@@ -204,8 +212,9 @@ const TemplateApplier = ({ connectedPubkey, setConnectedPubkey }) => {
               <li key={index}>
                 <span className="relay-url">{relay.url}</span>
                 <span className="relay-permissions">
-                  {relay.read ? '📖 Read' : ''}
-                  {relay.write ? ' ✍️ Write' : ''}
+                  {relay.read && relay.write ? '📖✍️' : 
+                   relay.read ? '📖' : 
+                   relay.write ? '✍️' : ''}
                 </span>
               </li>
             ))}
@@ -221,7 +230,7 @@ const TemplateApplier = ({ connectedPubkey, setConnectedPubkey }) => {
                 <li key={index}>
                   <span className="relay-url">{server.url}</span>
                   <span style={{ fontSize: '12px', color: '#999' }}>
-                    #{index + 1} {index === 0 ? '⭐ Perferred' : ''}
+                    #{index + 1} {index === 0 ? '⭐ Preferred' : ''}
                   </span>
                 </li>
               ))}
@@ -244,29 +253,56 @@ const TemplateApplier = ({ connectedPubkey, setConnectedPubkey }) => {
         )}
       </div>
 
-      {/* Connection Status */}
-      <div className="connection-status" style={{ marginBottom: '16px' }}>
-        {(connectedPubkey || pubkey) ? (
-          <div className="info-box">
-            ✅ Connected as: <code>{(connectedPubkey || pubkey).slice(0, 8)}...{(connectedPubkey || pubkey).slice(-8)}</code>
-          </div>
-        ) : (
-          <div className="warning" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px' }}>
-            <span>⚠️ Not connected to Nostr. Please connect your extension to publish.</span>
-            <button 
-              onClick={handleConnect}
-              disabled={isConnecting}
-              className="btn-nostr"
-              style={{ width: 'auto' }}
+      {/* AUTH SECTION */}
+      {!isConnected && (
+        <div className="auth-section" style={{
+          padding: '20px',
+          background: '#f8f9fa',
+          borderRadius: '8px',
+          border: '1px solid #e9ecef',
+          marginBottom: '16px'
+        }}>
+          <h4 style={{ marginBottom: '12px' }}>🔑 Connect Your Nostr Signer</h4>
+          <p style={{ fontSize: '14px', color: '#666', marginBottom: '12px' }}>
+            You need to connect a signer to publish this template.
+          </p>
+          <NostrConnect setConnectedPubkey={setConnectedPubkey} />
+        </div>
+      )}
+
+      {/* CONNECTED STATUS */}
+      {isConnected && (
+        <div className="connection-status" style={{ marginBottom: '16px' }}>
+          <div className="info-box" style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            padding: '12px 16px',
+            background: '#e8f5e9',
+            borderRadius: '6px',
+            border: '1px solid #4caf50',
+            flexWrap: 'wrap',
+            gap: '8px'
+          }}>
+            <span>
+              ✅ Connected: <code>{nostr.pubkey.slice(0, 8)}...{nostr.pubkey.slice(-8)}</code>
+            </span>
+            <button
+              onClick={() => {
+                nostr.disconnect();
+                setConnectedPubkey(null);
+              }}
+              className="btn-secondary"
+              style={{ fontSize: '12px', padding: '4px 12px' }}
             >
-              {isConnecting ? '⏳ Connecting...' : '🔑 Connect Nostr'}
+              Disconnect
             </button>
           </div>
-        )}
-      </div>
+        </div>
+      )}
 
-      {/* Publish Button */}
-      {!results && (connectedPubkey || pubkey) && (
+      {/* PUBLISH BUTTON */}
+      {!results && isConnected && (
         <button 
           onClick={handleApplyTemplate}
           className="btn-primary"
@@ -277,11 +313,7 @@ const TemplateApplier = ({ connectedPubkey, setConnectedPubkey }) => {
             marginTop: '10px'
           }}
         >
-          {applying ? (
-            '⏳ Publishing...'
-          ) : (
-            '✅ Apply Template & Publish to Relays'
-          )}
+          {applying ? '⏳ Publishing...' : '✅ Apply Template & Publish to Relays'}
         </button>
       )}
 
@@ -291,7 +323,7 @@ const TemplateApplier = ({ connectedPubkey, setConnectedPubkey }) => {
         </div>
       )}
 
-      {/* Results */}
+      {/* RESULTS */}
       {results && results.events && (
         <div className="success-box" style={{ marginTop: '20px' }}>
           <h3>
@@ -343,7 +375,6 @@ const TemplateApplier = ({ connectedPubkey, setConnectedPubkey }) => {
                         }}>
                           {result.success ? '✅' : '❌'} {result.url}
                           {result.error && ` - ${result.error}`}
-                          {BLAST_RELAYS.includes(result.url) && ' 🔥'}
                         </li>
                       ))}
                     </ul>

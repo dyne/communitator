@@ -1,34 +1,21 @@
 import React, { useState } from 'react';
 import { encodeTemplate, generateTemplateId, validateTemplate, getCommunityTemplates } from '../utils/templates';
 import RelayList from './RelayList';
-import NostrConnect from './NostrConnect';
 
-// Configure your blast relays here (hidden from UI)
-// These will be used to publish the events, but won't appear in the template
-const BLAST_RELAYS = [
-  'wss://relay.primal.net',
-  'wss://relay.damus.io',
-  'wss://nos.lol'
-  // Add your preferred blast relays here
-];
-
-const TemplateCreator = ({ setConnectedPubkey }) => {
+const TemplateCreator = () => {
   const [templateName, setTemplateName] = useState('');
   const [description, setDescription] = useState('');
   const [relays, setRelays] = useState([
-    { url: 'wss://relay.damus.io', read: true, write: true },
-    { url: 'wss://nos.lol', read: true, write: true }
+    { url: 'wss://your-cool.relay', read: true, write: true }
   ]);
   
-  // Blossom servers (kind 10063)
   const [blossomServers, setBlossomServers] = useState([
-    { url: 'https://cdn.satellite.earth' }
+    { url: 'https://your-blossom.community' }
   ]);
   const [showBlossom, setShowBlossom] = useState(true);
   
-  // DM relays (kind 10050)
   const [dmRelays, setDmRelays] = useState([
-    { url: 'wss://relay.private-msgs.com' }
+    { url: 'wss://your-dm.relay' }
   ]);
   const [showDmRelays, setShowDmRelays] = useState(true);
   
@@ -64,31 +51,6 @@ const TemplateCreator = ({ setConnectedPubkey }) => {
     }
   };
 
-  const loadCommunityTemplate = (templateKey) => {
-    const template = communityTemplates[templateKey];
-    if (template) {
-      setRelays(template.relays);
-      setTemplateName(template.name);
-      setDescription(template.description);
-      if (template.blossomServers && template.blossomServers.length > 0) {
-        setBlossomServers(template.blossomServers);
-        setShowBlossom(true);
-      } else {
-        setBlossomServers([{ url: '' }]);
-        setShowBlossom(false);
-      }
-      if (template.dmRelays && template.dmRelays.length > 0) {
-        setDmRelays(template.dmRelays);
-        setShowDmRelays(true);
-      } else {
-        setDmRelays([{ url: '' }]);
-        setShowDmRelays(false);
-      }
-      setSelectedTemplate(templateKey);
-      setError('');
-    }
-  };
-
   // Relay functions
   const addRelay = () => {
     setRelays([...relays, { url: '', read: true, write: true }]);
@@ -102,6 +64,12 @@ const TemplateCreator = ({ setConnectedPubkey }) => {
     const updated = [...relays];
     updated[index][field] = value;
     setRelays(updated);
+  };
+
+  const addCommonRelay = (url) => {
+    if (!relays.some(r => r.url === url)) {
+      setRelays([...relays, { url, read: true, write: true }]);
+    }
   };
 
   // Blossom server functions
@@ -134,17 +102,34 @@ const TemplateCreator = ({ setConnectedPubkey }) => {
     setDmRelays(updated);
   };
 
-  const addCommonRelay = (url) => {
-    if (!relays.some(r => r.url === url)) {
-      setRelays([...relays, { url, read: true, write: true }]);
+  const loadCommunityTemplate = (templateKey) => {
+    const template = communityTemplates[templateKey];
+    if (template) {
+      setRelays(template.relays);
+      setTemplateName(template.name);
+      setDescription(template.description);
+      if (template.blossomServers && template.blossomServers.length > 0) {
+        setBlossomServers(template.blossomServers);
+        setShowBlossom(true);
+      } else {
+        setBlossomServers([{ url: '' }]);
+        setShowBlossom(false);
+      }
+      if (template.dmRelays && template.dmRelays.length > 0) {
+        setDmRelays(template.dmRelays);
+        setShowDmRelays(true);
+      } else {
+        setDmRelays([{ url: '' }]);
+        setShowDmRelays(false);
+      }
+      setSelectedTemplate(templateKey);
+      setError('');
     }
   };
 
   return (
     <div className="template-creator">
       <h2>Create Relay Template</h2>
-      
-      <NostrConnect setConnectedPubkey={setConnectedPubkey} />
 
       {/* Community Templates Section */}
       <div className="form-group" style={{ 
@@ -243,7 +228,7 @@ const TemplateCreator = ({ setConnectedPubkey }) => {
 
       {/* Main Relays Section */}
       <div className="form-group">
-        <label>Relays *</label>
+        <label>📡 Relays *</label>
         <RelayList
           relays={relays}
           onUpdate={updateRelay}

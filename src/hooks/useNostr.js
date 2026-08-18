@@ -1,13 +1,13 @@
 import { useState, useEffect, useCallback } from 'react';
 
-// Blast relays - configure these once and they'll be used for publishing
-// These are hidden from the UI and used to blast events to reliable relays
+// Blast relays - configured once, used for publishing
 const BLAST_RELAYS = [
   'wss://relay.primal.net',
   'wss://relay.damus.io',
+  'wss://relay.ditto.pub',
+  'wss://offchain.pub',
   'wss://sendit.nosflare.com',
   'wss://nostr.mom',
-  'wss://relay.ditto.pub',
   'wss://nos.lol'
 ];
 
@@ -16,143 +16,144 @@ export const useNostr = () => {
   const [isConnected, setIsConnected] = useState(false);
   const [error, setError] = useState(null);
   const [extension, setExtension] = useState(null);
+  const [isConnecting, setIsConnecting] = useState(false);
 
+  // ============================================================
+  // INIT - Check for existing extension
+  // ============================================================
   useEffect(() => {
-    const checkExtension = async () => {
+    const checkConnection = async () => {
+      if (isConnected && pubkey) return;
+
       try {
-        if (window.nostr) {
-          setExtension(window.nostr);
+        if (window.nostr?.getPublicKey) {
           try {
             const pk = await window.nostr.getPublicKey();
+            setExtension(window.nostr);
             setPubkey(pk);
             setIsConnected(true);
-          } catch (err) {
+            console.log('✅ Connected via extension:', pk.slice(0, 8) + '...');
+            return;
+          } catch (e) {
             console.log('Extension available but not authorized');
           }
         }
-      } catch (err) {
-        setError('No Nostr extension found');
+        console.log('ℹ️ No extension found');
+      } catch (e) {
+        console.error('Init error:', e);
       }
     };
-    checkExtension();
-  }, []);
 
+    checkConnection();
+
+    const interval = setInterval(() => {
+      if (window.nostr?.getPublicKey && !isConnected) {
+        window.nostr.getPublicKey().then(pk => {
+          setExtension(window.nostr);
+          setPubkey(pk);
+          setIsConnected(true);
+          console.log('✅ Extension connected:', pk.slice(0, 8) + '...');
+        }).catch(() => {});
+      }
+    }, 2000);
+
+    return () => clearInterval(interval);
+  }, [isConnected, pubkey]);
+
+  // ============================================================
+  // CONNECT
+  // ============================================================
   const connect = useCallback(async () => {
     try {
+      setIsConnecting(true);
       if (!window.nostr) {
         throw new Error('Please install a Nostr extension (Alby, Nos2x, etc.)');
       }
       const pk = await window.nostr.getPublicKey();
+      setExtension(window.nostr);
       setPubkey(pk);
       setIsConnected(true);
-      setExtension(window.nostr);
       setError(null);
+      setIsConnecting(false);
       return pk;
-    } catch (err) {
-      setError(err.message);
-      setIsConnected(false);
-      throw err;
+    } catch (e) {
+      setError(e.message);
+      setIsConnecting(false);
+      throw e;
     }
   }, []);
 
+  // ============================================================
+  // SIGN EVENT
+  // ============================================================
   const signEvent = useCallback(async (event) => {
     if (!extension) {
       throw new Error('No Nostr extension connected');
     }
-    return await extension.signEvent(event);
+    try {
+      console.log('📱 Signing event...');
+      const signed = await extension.signEvent(event);
+      console.log('✅ Event signed');
+      return signed;
+    } catch (e) {
+      console.error('Signing failed:', e);
+      throw e;
+    }
   }, [extension]);
 
+  // ============================================================
+  // PUBLISH HELPERS
+  // ============================================================
   const publishToSingleRelay = useCallback((url, event) => {
     return new Promise((resolve) => {
-      let ws = null;
+      const ws = new WebSocket(url);
       let resolved = false;
-      let timeoutIds = [];
-      
-      try {
-        ws = new WebSocket(url);
-        
-        const connectTimeout = setTimeout(() => {
-          if (!resolved) {
-            resolved = true;
-            if (ws && ws.readyState !== WebSocket.CLOSED) {
-              try { ws.close(); } catch (e) {}
-            }
-            resolve({ url, success: false, error: 'Connection timeout' });
-          }
-        }, 10000);
-        timeoutIds.push(connectTimeout);
-        
-        ws.onopen = () => {
-          const message = JSON.stringify(['EVENT', event]);
-          ws.send(message);
-          
-          const publishTimeout = setTimeout(() => {
-            if (!resolved) {
-              resolved = true;
-              console.log(`⏰ Publish timeout for ${url}`);
-              try { ws.close(); } catch (e) {}
-              resolve({ url, success: false, error: 'Publish timeout' });
-            }
-          }, 15000);
-          timeoutIds.push(publishTimeout);
-          
-          ws.onmessage = (msg) => {
-            try {
-              const data = JSON.parse(msg.data);
-              if (Array.isArray(data) && data[0] === 'OK' && data[1] === event.id) {
-                if (!resolved) {
-                  resolved = true;
-                  console.log(`✅ Published to ${url}`);
-                  timeoutIds.forEach(id => clearTimeout(id));
-                  try { ws.close(); } catch (e) {}
-                  resolve({ url, success: true });
-                }
-              }
-            } catch (e) {}
-          };
-          
-          ws.onerror = () => {
-            if (!resolved) {
-              resolved = true;
-              timeoutIds.forEach(id => clearTimeout(id));
-              try { ws.close(); } catch (e) {}
-              resolve({ url, success: false, error: 'WebSocket error' });
-            }
-          };
-          
-          ws.onclose = () => {
-            if (!resolved) {
-              resolved = true;
-              timeoutIds.forEach(id => clearTimeout(id));
-              resolve({ url, success: false, error: 'Connection closed' });
-            }
-          };
-        };
-        
-        ws.onerror = () => {
-          if (!resolved) {
-            resolved = true;
-            timeoutIds.forEach(id => clearTimeout(id));
-            resolve({ url, success: false, error: 'Connection error' });
-          }
-        };
-        
-      } catch (err) {
+
+      const timeout = setTimeout(() => {
         if (!resolved) {
           resolved = true;
-          timeoutIds.forEach(id => clearTimeout(id));
-          if (ws) {
-            try { ws.close(); } catch (e) {}
-          }
-          resolve({ url, success: false, error: err.message });
+          try { ws.close(); } catch (e) {}
+          resolve({ url, success: false, error: 'Timeout' });
         }
-      }
+      }, 10000);
+
+      ws.onopen = () => {
+        ws.send(JSON.stringify(['EVENT', event]));
+        const pubTimeout = setTimeout(() => {
+          if (!resolved) {
+            resolved = true;
+            try { ws.close(); } catch (e) {}
+            resolve({ url, success: false, error: 'Publish timeout' });
+          }
+        }, 15000);
+
+        ws.onmessage = (msg) => {
+          try {
+            const data = JSON.parse(msg.data);
+            if (data[0] === 'OK' && data[1] === event.id) {
+              if (!resolved) {
+                resolved = true;
+                clearTimeout(timeout);
+                clearTimeout(pubTimeout);
+                try { ws.close(); } catch (e) {}
+                resolve({ url, success: true });
+              }
+            }
+          } catch (e) {}
+        };
+      };
+
+      ws.onerror = () => {
+        if (!resolved) {
+          resolved = true;
+          clearTimeout(timeout);
+          try { ws.close(); } catch (e) {}
+          resolve({ url, success: false, error: 'WebSocket error' });
+        }
+      };
     });
   }, []);
 
-  /**
-   * Publish to multiple relays with detailed results
-   */
   const publishToRelays = useCallback(async (event, relayUrls, label = '') => {
     console.log(`Publishing ${label} to ${relayUrls.length} relays...`);
     
@@ -169,8 +170,9 @@ export const useNostr = () => {
       return [{ url: 'none', success: false, error: 'No valid relay URLs' }];
     }
     
-    const publishPromises = validUrls.map(url => publishToSingleRelay(url, event));
-    const results = await Promise.all(publishPromises);
+    const results = await Promise.all(
+      validUrls.map(url => publishToSingleRelay(url, event))
+    );
     
     const successCount = results.filter(r => r.success).length;
     console.log(`Published ${label} to ${successCount}/${results.length} relays`);
@@ -178,8 +180,16 @@ export const useNostr = () => {
     return results;
   }, [publishToSingleRelay]);
 
+  // ============================================================
+  // PUBLISH KIND FUNCTIONS
+  // ============================================================
+
   /**
-   * Generic publish function that publishes to BOTH blast relays AND user relays
+   * Generic publish function that publishes to ALL relays
+   * @param {number} kind - Event kind
+   * @param {object} data - Event data with tags and content
+   * @param {string} pubkey - User's pubkey
+   * @param {string[]} userRelayUrls - User's relay URLs (all of them, not just for this kind)
    */
   const publishKind = useCallback(async (kind, data, pubkey, userRelayUrls = []) => {
     if (!extension) {
@@ -187,104 +197,99 @@ export const useNostr = () => {
     }
 
     const event = {
-      kind: kind,
-      pubkey: pubkey,
+      kind,
+      pubkey,
       created_at: Math.floor(Date.now() / 1000),
       tags: data.tags || [],
       content: data.content || ''
     };
 
     console.log(`Signing kind ${kind} event...`);
-    const signedEvent = await extension.signEvent(event);
+    const signedEvent = await signEvent(event);
     console.log(`Kind ${kind} event signed successfully`);
 
-    // Combine blast relays and user relays (deduplicated)
+    // ✅ Combine ALL relays: blast + ALL user relays
     const allRelays = [...new Set([...BLAST_RELAYS, ...userRelayUrls])];
     console.log(`Publishing kind ${kind} to ${allRelays.length} relays (${BLAST_RELAYS.length} blast + ${userRelayUrls.length} user)`);
 
-    // Publish to all relays
     const results = await publishToRelays(signedEvent, allRelays, `kind ${kind}`);
     
-    // Separate results for better reporting
     const blastResults = results.filter(r => BLAST_RELAYS.includes(r.url));
     const userResults = results.filter(r => userRelayUrls.includes(r.url));
     
-    console.log(`Kind ${kind} results:`, {
-      blast: `${blastResults.filter(r => r.success).length}/${blastResults.length}`,
-      user: `${userResults.filter(r => r.success).length}/${userResults.length}`
-    });
-    
     return {
       event: signedEvent,
-      results: results,
-      blastResults: blastResults,
-      userResults: userResults
+      results,
+      blastResults,
+      userResults
     };
-  }, [extension, publishToRelays]);
+  }, [extension, signEvent, publishToRelays]);
 
   // Kind 10002 - Relays
   const publishKind10002 = useCallback(async (relays, pubkey) => {
     const validRelays = relays.filter(r => r.url && r.url.trim() !== '');
-    
     if (validRelays.length === 0) {
       throw new Error('No valid relays to publish');
     }
-
     const tags = validRelays.map(relay => {
       const params = [];
       if (!relay.read) params.push('read');
       if (!relay.write) params.push('write');
       return ['r', relay.url, ...params];
     });
-
-    // Extract user relay URLs for combined publishing
+    // ✅ Pass ALL user relay URLs (they're the same as the relays being published)
     const userRelayUrls = validRelays.map(r => r.url);
-    
     return await publishKind(10002, { tags }, pubkey, userRelayUrls);
   }, [publishKind]);
 
   // Kind 10063 - Blossom Servers
-  const publishKind10063 = useCallback(async (servers, pubkey) => {
+  const publishKind10063 = useCallback(async (servers, pubkey, allUserRelays = []) => {
     const validServers = servers.filter(s => s.url && s.url.trim() !== '');
-    
     if (validServers.length === 0) {
       throw new Error('No valid blossom servers');
     }
-
     const tags = validServers.map(server => ['server', server.url]);
-
-    // For blossom servers, we want to publish to blast relays
-    // The user's main relays are used for kind 10002, not kind 10063
-    return await publishKind(10063, { tags }, pubkey, []);
+    // ✅ Pass ALL user relays (main relays, not just blossom servers)
+    return await publishKind(10063, { tags }, pubkey, allUserRelays);
   }, [publishKind]);
 
   // Kind 10050 - DM Relays
-  const publishKind10050 = useCallback(async (relays, pubkey) => {
+  const publishKind10050 = useCallback(async (relays, pubkey, allUserRelays = []) => {
     const validRelays = relays.filter(r => r.url && r.url.trim() !== '');
-    
     if (validRelays.length === 0) {
       throw new Error('No valid DM relays');
     }
-
     const tags = validRelays.map(relay => ['relay', relay.url]);
-
-    // For DM relays, we want to publish to blast relays
-    // The user's main relays are used for kind 10002, not kind 10050
-    return await publishKind(10050, { tags }, pubkey, []);
+    // ✅ Pass ALL user relays (main relays, not just DM relays)
+    return await publishKind(10050, { tags }, pubkey, allUserRelays);
   }, [publishKind]);
 
+  // ============================================================
+  // DISCONNECT
+  // ============================================================
+  const disconnect = useCallback(() => {
+    setPubkey(null);
+    setIsConnected(false);
+    setExtension(null);
+    console.log('👋 Disconnected');
+  }, []);
+
+  // ============================================================
+  // RETURN
+  // ============================================================
   return {
     pubkey,
     isConnected,
     error,
-    extension,
+    isConnecting,
     connect,
     signEvent,
+    disconnect,
     publishToRelays,
     publishKind,
     publishKind10002,
     publishKind10063,
-    publishKind10050
+    publishKind10050,
   };
 };
 
