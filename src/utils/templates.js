@@ -78,11 +78,11 @@ export const validateTemplate = (template) => {
     }
 
     if (typeof relay.read !== 'boolean') {
-      throw new Error(`Relay ${index + 1} must specify read as boolean`);
+      throw new Error(`Relay ${index + 1} must specify read (inbox) as boolean`);
     }
 
     if (typeof relay.write !== 'boolean') {
-      throw new Error(`Relay ${index + 1} must specify write as boolean`);
+      throw new Error(`Relay ${index + 1} must specify write (outbox) as boolean`);
     }
   });
 
@@ -338,10 +338,13 @@ export const cloneTemplate = (template) => {
 
 /**
  * Convert template relays to kind 10002 tags format
+ * read = inbox, write = outbox
  */
 export const templateToKind10002Tags = (template) => {
   return template.relays.map(relay => {
     const params = [];
+    // If read is false, add 'read' tag (meaning "don't read from this relay")
+    // If write is false, add 'write' tag (meaning "don't write to this relay")
     if (!relay.read) params.push('read');
     if (!relay.write) params.push('write');
     return ['r', relay.url, ...params];
@@ -350,6 +353,9 @@ export const templateToKind10002Tags = (template) => {
 
 /**
  * Convert kind 10002 tags to template format
+ * - ['r', url] = read AND write (both inbox and outbox)
+ * - ['r', url, 'read'] = read ONLY (inbox only)
+ * - ['r', url, 'write'] = write ONLY (outbox only)
  */
 export const kind10002TagsToTemplate = (tags, name = 'Imported Relays') => {
   const relays = tags
@@ -357,10 +363,14 @@ export const kind10002TagsToTemplate = (tags, name = 'Imported Relays') => {
     .map(tag => {
       const url = tag[1];
       const params = tag.slice(2);
+      // If 'read' is in params, read is false (don't read from this relay)
+      // If 'write' is in params, write is false (don't write to this relay)
+      const read = !params.includes('read');
+      const write = !params.includes('write');
       return {
         url: url,
-        read: !params.includes('read'),
-        write: !params.includes('write')
+        read: read,
+        write: write
       };
     });
 

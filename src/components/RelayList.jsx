@@ -18,7 +18,7 @@ const RelayList = ({ relays, onUpdate, onRemove }) => {
               checked={relay.read}
               onChange={(e) => onUpdate(index, 'read', e.target.checked)}
             />
-            Read
+            📨 Inbox (Read)
           </label>
           <label>
             <input
@@ -26,7 +26,7 @@ const RelayList = ({ relays, onUpdate, onRemove }) => {
               checked={relay.write}
               onChange={(e) => onUpdate(index, 'write', e.target.checked)}
             />
-            Write
+            📤 Outbox (Write)
           </label>
           <button 
             onClick={() => onRemove(index)}

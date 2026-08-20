@@ -8,7 +8,12 @@ const BLAST_RELAYS = [
   'wss://offchain.pub',
   'wss://sendit.nosflare.com',
   'wss://nostr.mom',
-  'wss://nos.lol'
+  'wss://nos.lol',
+  'wss://purplepag.es',
+  'wss://indexer.coracle.social',
+  'wss://user.kindpag.es',
+  'wss://directory.yabu.me',
+  'wss://profiles.nostr1.com'
 ];
 
 export const useNostr = () => {
@@ -224,8 +229,15 @@ export const useNostr = () => {
     }
     const tags = validRelays.map(relay => {
       const params = [];
-      if (!relay.read) params.push('read');
-      if (!relay.write) params.push('write');
+      // Read only
+      if (relay.read && !relay.write) {
+        params.push('read');
+      }
+      // Write only
+      else if (!relay.read && relay.write) {
+        params.push('write');
+      }
+      // If both are true or both are false → no tags (default behavior)
       return ['r', relay.url, ...params];
     });
     const userRelayUrls = validRelays.map(r => r.url);
