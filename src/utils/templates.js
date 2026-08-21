@@ -343,8 +343,6 @@ export const cloneTemplate = (template) => {
 export const templateToKind10002Tags = (template) => {
   return template.relays.map(relay => {
     const params = [];
-    // If read is false, add 'read' tag (meaning "don't read from this relay")
-    // If write is false, add 'write' tag (meaning "don't write to this relay")
     if (!relay.read) params.push('read');
     if (!relay.write) params.push('write');
     return ['r', relay.url, ...params];
