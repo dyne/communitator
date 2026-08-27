@@ -54,10 +54,9 @@ When new users join Nostr, one of the biggest friction points is choosing and co
 
 ### Setup
 
+Clone the repository.
+
 ```bash
-# Clone the repository
-git clone https://git.basspistol.org/hq/Communitator.git
-cd Communitator
 
 # Install dependencies
 npm install
@@ -207,8 +206,7 @@ The app works with any NIP-07 compatible Nostr extension:
 
 ## License
 
-MIT
+GNU GENERAL PUBLIC LICENSE Version 3
 
 ---
 
-**Repository**: [https://git.basspistol.org/hq/Communitator](https://git.basspistol.org/hq/Communitator)
