@@ -212,9 +212,9 @@ const TemplateApplier = ({ setConnectedPubkey }) => {
               <li key={index}>
                 <span className="relay-url">{relay.url}</span>
                 <span className="relay-permissions">
-                  {relay.read && relay.write ? '📨📤 (Inbox + Outbox)' : 
-                   relay.read ? '📨 (Inbox)' : 
-                   relay.write ? '📤 (Outbox)' : ''}
+                  {relay.read && relay.write ? '📨📤 Read + Write (In- & Outbox)' :
+                   relay.read ? '📨 Read (Inbox)' :
+                   relay.write ? '📤 Write (Outbox)' : ''}
                 </span>
               </li>
             ))}
