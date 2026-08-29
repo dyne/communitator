@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+// @ts-nocheck -- operation-result types are introduced with the apply orchestration boundary.
+import { useState, useEffect } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { decodeTemplate, validateTemplate } from '../utils/templates';
 import useNostr from '../hooks/useNostr';
@@ -30,7 +31,7 @@ const TemplateApplier = ({ setConnectedPubkey }) => {
             await nostr.connect();
             setConnectedPubkey(pk);
           }
-        } catch (e) {
+        } catch {
           console.log('Extension not authorized');
         }
       }

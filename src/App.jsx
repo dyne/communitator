@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { HashRouter, Routes, Route, Link } from 'react-router-dom';
 import TemplateCreator from './components/TemplateCreator';
 import TemplateApplier from './components/TemplateApplier';

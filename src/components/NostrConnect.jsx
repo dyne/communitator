@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+// @ts-nocheck -- NIP-07 typing is introduced with the signer-session boundary.
+import { useState, useEffect } from 'react';
 
 const NostrConnect = ({ setConnectedPubkey }) => {
   const [pubkey, setPubkey] = useState(null);

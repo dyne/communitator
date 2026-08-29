@@ -5,7 +5,16 @@
  */
 
 /**
- * Encode a template object into a URL-safe base64 string
+ * Public template contract used by creators, shared links, and event builders.
+ * @typedef {{url: string, read: boolean, write: boolean}} Relay
+ * @typedef {{url: string}} Endpoint
+ * @typedef {{id?: string, name: string, description?: string, relays: Relay[], blossomServers?: Endpoint[], dmRelays?: Endpoint[], created_at?: number}} Template
+ */
+
+/**
+ * Encode a template object into a URL-safe base64 string.
+ * @param {Template} template
+ * @returns {string}
  */
 export const encodeTemplate = (template) => {
   try {
@@ -17,7 +26,9 @@ export const encodeTemplate = (template) => {
 };
 
 /**
- * Decode a URL-safe base64 string back to a template object
+ * Decode a URL-safe base64 string back to a template object.
+ * @param {string} encoded
+ * @returns {Template}
  */
 export const decodeTemplate = (encoded) => {
   try {
@@ -47,7 +58,9 @@ export const generateTemplateId = () => {
  */
 
 /**
- * Validate template structure and data
+ * Validate template structure and data.
+ * @param {Template} template
+ * @returns {true}
  */
 export const validateTemplate = (template) => {
   if (!template || typeof template !== 'object') {
@@ -73,7 +86,7 @@ export const validateTemplate = (template) => {
       if (url.protocol !== 'wss:' && url.protocol !== 'ws:') {
         throw new Error(`Relay ${index + 1} must use wss:// or ws:// protocol`);
       }
-    } catch (error) {
+    } catch {
       throw new Error(`Relay ${index + 1} has invalid URL: ${relay.url}`);
     }
 
@@ -97,7 +110,7 @@ export const validateTemplate = (template) => {
         if (url.protocol !== 'https:' && url.protocol !== 'http:') {
           throw new Error(`Blossom server ${index + 1} must use https:// or http:// protocol`);
         }
-      } catch (error) {
+      } catch {
         throw new Error(`Blossom server ${index + 1} has invalid URL: ${server.url}`);
       }
     });
@@ -114,7 +127,7 @@ export const validateTemplate = (template) => {
         if (url.protocol !== 'wss:' && url.protocol !== 'ws:') {
           throw new Error(`DM relay ${index + 1} must use wss:// or ws:// protocol`);
         }
-      } catch (error) {
+      } catch {
         throw new Error(`DM relay ${index + 1} has invalid URL: ${relay.url}`);
       }
     });
@@ -339,6 +352,12 @@ export const cloneTemplate = (template) => {
 /**
  * Convert template relays to kind 10002 tags format
  * read = inbox, write = outbox
+ */
+/**
+ * Build the current NIP-65 tag representation for a template.
+ * The canonical-event-builders milestone will replace this legacy conversion.
+ * @param {Template} template
+ * @returns {string[][]}
  */
 export const templateToKind10002Tags = (template) => {
   return template.relays.map(relay => {

@@ -1,5 +1,14 @@
 import { useState, useEffect, useCallback } from 'react';
 
+/**
+ * Public signer contract consumed by the application transport.
+ * @typedef {{getPublicKey: () => Promise<string>, signEvent: (event: UnsignedNostrEvent) => Promise<SignedNostrEvent>}} NostrSigner
+ * @typedef {{kind: number, pubkey: string, created_at: number, tags: string[][], content: string}} UnsignedNostrEvent
+ * @typedef {UnsignedNostrEvent & {id: string, sig: string}} SignedNostrEvent
+ * @typedef {{url: string, success: boolean, error?: string}} RelayPublicationResult
+ * @typedef {{pubkey: string | null, isConnected: boolean, error: string | null, isConnecting: boolean, connect: () => Promise<string>, signEvent: (event: UnsignedNostrEvent) => Promise<SignedNostrEvent>, disconnect: () => void, publishToRelays: (event: SignedNostrEvent, relayUrls: string[], label?: string) => Promise<RelayPublicationResult[]>} & Record<string, unknown>} NostrSession
+ */
+
 // Blast relays - configured once, used for publishing
 const BLAST_RELAYS = [
   'wss://relay.primal.net',
@@ -16,11 +25,12 @@ const BLAST_RELAYS = [
   'wss://profiles.nostr1.com'
 ];
 
+/** @returns {NostrSession} */
 export const useNostr = () => {
-  const [pubkey, setPubkey] = useState(null);
+  const [pubkey, setPubkey] = useState(/** @type {string | null} */ (null));
   const [isConnected, setIsConnected] = useState(false);
-  const [error, setError] = useState(null);
-  const [extension, setExtension] = useState(null);
+  const [error, setError] = useState(/** @type {string | null} */ (null));
+  const [extension, setExtension] = useState(/** @type {NostrSigner | null} */ (null));
   const [isConnecting, setIsConnecting] = useState(false);
 
   // ============================================================
@@ -34,12 +44,12 @@ export const useNostr = () => {
         if (window.nostr?.getPublicKey) {
           try {
             const pk = await window.nostr.getPublicKey();
-            setExtension(window.nostr);
+          setExtension(/** @type {NostrSigner} */ (window.nostr));
             setPubkey(pk);
             setIsConnected(true);
             console.log('✅ Connected via extension:', pk.slice(0, 8) + '...');
             return;
-          } catch (e) {
+          } catch {
             console.log('Extension available but not authorized');
           }
         }
@@ -54,7 +64,7 @@ export const useNostr = () => {
     const interval = setInterval(() => {
       if (window.nostr?.getPublicKey && !isConnected) {
         window.nostr.getPublicKey().then(pk => {
-          setExtension(window.nostr);
+          setExtension(/** @type {NostrSigner} */ (window.nostr));
           setPubkey(pk);
           setIsConnected(true);
           console.log('✅ Extension connected:', pk.slice(0, 8) + '...');
@@ -75,7 +85,7 @@ export const useNostr = () => {
         throw new Error('Please install a Nostr extension (Alby, Nos2x, etc.)');
       }
       const pk = await window.nostr.getPublicKey();
-      setExtension(window.nostr);
+      setExtension(/** @type {NostrSigner} */ (window.nostr));
       setPubkey(pk);
       setIsConnected(true);
       setError(null);
@@ -117,7 +127,7 @@ export const useNostr = () => {
       const timeout = setTimeout(() => {
         if (!resolved) {
           resolved = true;
-          try { ws.close(); } catch (e) {}
+          try { ws.close(); } catch { /* ignored during cleanup */ }
           resolve({ url, success: false, error: 'Timeout' });
         }
       }, 10000);
@@ -127,7 +137,7 @@ export const useNostr = () => {
         const pubTimeout = setTimeout(() => {
           if (!resolved) {
             resolved = true;
-            try { ws.close(); } catch (e) {}
+            try { ws.close(); } catch { /* ignored during cleanup */ }
             resolve({ url, success: false, error: 'Publish timeout' });
           }
         }, 15000);
@@ -140,11 +150,11 @@ export const useNostr = () => {
                 resolved = true;
                 clearTimeout(timeout);
                 clearTimeout(pubTimeout);
-                try { ws.close(); } catch (e) {}
+                try { ws.close(); } catch { /* ignored during cleanup */ }
                 resolve({ url, success: true });
               }
             }
-          } catch (e) {}
+          } catch { /* malformed relay message is ignored */ }
         };
       };
 
@@ -152,7 +162,7 @@ export const useNostr = () => {
         if (!resolved) {
           resolved = true;
           clearTimeout(timeout);
-          try { ws.close(); } catch (e) {}
+          try { ws.close(); } catch { /* ignored during cleanup */ }
           resolve({ url, success: false, error: 'WebSocket error' });
         }
       };

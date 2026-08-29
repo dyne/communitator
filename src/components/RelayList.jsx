@@ -1,4 +1,3 @@
-import React from 'react';
 
 const RelayList = ({ relays, onUpdate, onRemove }) => {
   return (
