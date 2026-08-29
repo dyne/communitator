@@ -381,7 +381,12 @@
     color: var(--strip-tone);
     font-family: var(--vp-font-family-mono);
     font-size: 0.72rem;
+    text-decoration: underline;
+    text-decoration-color: color-mix(in srgb, var(--strip-tone) 55%, transparent);
+    text-underline-offset: 0.18em;
   }
+
+  .channel-strip__kind:hover { text-decoration-color: currentColor; }
 
   .channel-strip strong {
     overflow: hidden;
@@ -585,7 +590,7 @@
 
   .event-log__row {
     display: grid;
-    grid-template-columns: 0.65fr 1.35fr 0.55fr;
+    grid-template-columns: 0.9fr 1.25fr 0.75fr;
     gap: 1rem;
     align-items: center;
     min-block-size: 5rem;
@@ -602,22 +607,37 @@
     text-transform: uppercase;
   }
 
-  .event-log__row code {
+  .event-log__kind code {
     color: var(--vp-c-brand-1);
     background: transparent;
     font-size: clamp(1rem, 2vw, 1.35rem);
   }
 
-  .event-log__row > span:last-child {
+  .event-log__kind,
+  .event-log__spec {
+    inline-size: fit-content;
+    text-decoration: underline;
+    text-underline-offset: 0.2em;
+  }
+
+  .event-log__kind { text-decoration-color: color-mix(in srgb, var(--vp-c-brand-1) 45%, transparent); }
+
+  .event-log__spec {
     justify-self: end;
     color: #205e4e;
     font-family: var(--vp-font-family-mono);
-    font-size: 0.68rem;
+    font-size: 0.72rem;
     font-weight: 600;
-    text-transform: uppercase;
+    text-decoration-color: color-mix(in srgb, #205e4e 45%, transparent);
   }
 
-  .dark .event-log__row > span:last-child { color: #83d2b8; }
+  .event-log__kind:hover,
+  .event-log__spec:hover { text-decoration-color: currentColor; }
+
+  .dark .event-log__spec {
+    color: #83d2b8;
+    text-decoration-color: color-mix(in srgb, #83d2b8 45%, transparent);
+  }
 
   .trust-strip {
     display: grid;
@@ -902,6 +922,12 @@
       background: transparent;
     }
 
+    .route-mobile__sources a {
+      text-decoration: underline;
+      text-decoration-color: color-mix(in srgb, var(--signal-orange) 45%, transparent);
+      text-underline-offset: 0.18em;
+    }
+
     .route-mobile__destinations {
       grid-template-columns: repeat(2, auto);
       color: var(--signal-green);
@@ -934,9 +960,10 @@
     .final-call h2 {
       font-size: clamp(2.05rem, 10vw, 3rem);
     }
-    .event-log__row { grid-template-columns: 0.75fr 1.25fr 0.55fr; padding-inline: 0.3rem; }
-    .event-log__row--head { font-size: 0.7rem; }
+    .event-log__row { grid-template-columns: 0.9fr 1.1fr 0.75fr; gap: 0.55rem; padding-inline: 0.3rem; }
+    .event-log__row--head { font-size: 0.62rem; letter-spacing: 0.045em; }
     .event-log__row strong { font-size: 0.83rem; }
+    .event-log__spec { font-size: 0.66rem; }
 
     .trust-strip__sequence {
       grid-template-columns: 1fr;

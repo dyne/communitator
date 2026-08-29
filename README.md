@@ -191,11 +191,13 @@ server {
 
 ## Event Types
 
-| Kind | Description | Published To |
-|------|-------------|--------------|
-| 10002 | User's main relays | Blast relays + User's relays |
-| 10063 | Blossom servers | Blast relays + User's relays |
-| 10050 | DM relays | Blast relays + User's relays |
+These are Nostr event-kind identifiers, not TCP ports or NIP numbers.
+
+| Nostr event kind | Description | Defined by | Published To |
+|------|-------------|------------|--------------|
+| [10002](https://github.com/nostr-protocol/nips/blob/master/65.md) | User's main relays | [NIP-65](https://github.com/nostr-protocol/nips/blob/master/65.md) | Blast relays + User's relays |
+| [10063](https://github.com/nostr-protocol/nips/blob/master/B7.md) | Blossom servers | [NIP-B7](https://github.com/nostr-protocol/nips/blob/master/B7.md) | Blast relays + User's relays |
+| [10050](https://github.com/nostr-protocol/nips/blob/master/17.md) | DM relays | [NIP-17](https://github.com/nostr-protocol/nips/blob/master/17.md) | Blast relays + User's relays |
 
 ## Requirements
 

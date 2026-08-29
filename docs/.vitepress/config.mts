@@ -18,7 +18,7 @@ export default defineConfig({
     ['link', { rel: 'stylesheet', href: 'https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Space+Grotesk:wght@400;500;600;700&family=Syne:wght@600;700;800&display=swap' }],
     ['meta', { name: 'theme-color', content: '#171b19' }],
     ['meta', { property: 'og:type', content: 'website' }],
-    ['meta', { property: 'og:title', content: 'Communitator — Put your community on the right relays' }],
+    ['meta', { property: 'og:title', content: 'Communitator — Put your Nostr community on the right relays' }],
     ['meta', { property: 'og:description', content: 'Build and share complete Nostr relay settings in one reviewable link.' }]
   ],
   themeConfig: {
