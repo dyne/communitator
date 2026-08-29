@@ -1,7 +1,7 @@
 // @ts-nocheck -- operation-result types are introduced with the apply orchestration boundary.
 import { useState, useEffect } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { decodeTemplate, validateTemplate } from '../utils/templates';
+import { decodeTemplate, displayEndpoint } from '../utils/templates';
 import useNostr from '../hooks/useNostr';
 import NostrConnect from './NostrConnect';
 
@@ -57,12 +57,10 @@ const TemplateApplier = ({ setConnectedPubkey }) => {
 
     try {
       const decoded = decodeTemplate(encoded);
-      validateTemplate(decoded);
       setTemplate(decoded);
       setError('');
-    } catch (err) {
-      console.error('Template decode error:', err);
-      setError('Invalid template: ' + err.message);
+    } catch {
+      setError('This template link is invalid or unsupported.');
     }
   }, [encoded]);
 
@@ -81,9 +79,6 @@ const TemplateApplier = ({ setConnectedPubkey }) => {
         throw new Error('Please connect your Nostr signer first');
       }
 
-      // Collect ALL user relay URLs from the main relays
-      const allUserRelays = template.relays.map(r => r.url);
-
       const allResults = [];
       const publishConfigs = [];
 
@@ -92,7 +87,7 @@ const TemplateApplier = ({ setConnectedPubkey }) => {
         publishConfigs.push({
           name: 'Relays (kind 10002)',
           kind: '10002',
-          publishFn: () => nostr.publishKind10002(template.relays, nostr.pubkey)
+          publishFn: () => nostr.publishKind10002(template)
         });
       }
 
@@ -101,7 +96,7 @@ const TemplateApplier = ({ setConnectedPubkey }) => {
         publishConfigs.push({
           name: 'Blossom Servers (kind 10063)',
           kind: '10063',
-          publishFn: () => nostr.publishKind10063(template.blossomServers, nostr.pubkey, allUserRelays)
+          publishFn: () => nostr.publishKind10063(template)
         });
       }
 
@@ -110,7 +105,7 @@ const TemplateApplier = ({ setConnectedPubkey }) => {
         publishConfigs.push({
           name: 'DM Relays (kind 10050)',
           kind: '10050',
-          publishFn: () => nostr.publishKind10050(template.dmRelays, nostr.pubkey, allUserRelays)
+          publishFn: () => nostr.publishKind10050(template)
         });
       }
 
@@ -141,12 +136,12 @@ const TemplateApplier = ({ setConnectedPubkey }) => {
             userTotal: result.userResults ? result.userResults.length : 0,
             details: result.results
           });
-        } catch (err) {
+        } catch {
           allResults.push({
             kind: config.kind,
             name: config.name,
             success: false,
-            error: err.message
+            error: 'Publication failed'
           });
         }
       }
@@ -156,8 +151,8 @@ const TemplateApplier = ({ setConnectedPubkey }) => {
         events: allResults
       });
 
-    } catch (err) {
-      setError('Failed to apply template: ' + err.message);
+    } catch {
+      setError('Unable to apply this template.');
     } finally {
       setApplying(false);
     }
@@ -211,7 +206,7 @@ const TemplateApplier = ({ setConnectedPubkey }) => {
           <ul>
             {template.relays.map((relay, index) => (
               <li key={index}>
-                <span className="relay-url">{relay.url}</span>
+                <span className="relay-url">{displayEndpoint(relay.url)}</span>
                 <span className="relay-permissions">
                   {relay.read && relay.write ? '📨📤 Read + Write (In- & Outbox)' :
                    relay.read ? '📨 Read (Inbox)' :
@@ -229,7 +224,7 @@ const TemplateApplier = ({ setConnectedPubkey }) => {
             <ul>
               {template.blossomServers.map((server, index) => (
                 <li key={index}>
-                  <span className="relay-url">{server.url}</span>
+                  <span className="relay-url">{displayEndpoint(server.url)}</span>
                   <span style={{ fontSize: '12px', color: '#999' }}>
                     #{index + 1} {index === 0 ? '⭐ Preferred' : ''}
                   </span>
@@ -246,7 +241,7 @@ const TemplateApplier = ({ setConnectedPubkey }) => {
             <ul>
               {template.dmRelays.map((relay, index) => (
                 <li key={index}>
-                  <span className="relay-url">{relay.url}</span>
+                  <span className="relay-url">{displayEndpoint(relay.url)}</span>
                 </li>
               ))}
             </ul>

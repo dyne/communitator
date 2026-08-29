@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { encodeTemplate, generateTemplateId, validateTemplate, getCommunityTemplates } from '../utils/templates';
+import { canonicalizeTemplate, encodeTemplate, generateTemplateId, getCommunityTemplates } from '../utils/templates';
 import RelayList from './RelayList';
 
 const TemplateCreator = () => {
@@ -27,7 +27,7 @@ const TemplateCreator = () => {
 
   const handleCreateTemplate = () => {
     try {
-      const template = {
+      const template = canonicalizeTemplate({
         id: generateTemplateId(),
         name: templateName,
         description: description,
@@ -35,9 +35,7 @@ const TemplateCreator = () => {
         blossomServers: showBlossom ? blossomServers : [],
         dmRelays: showDmRelays ? dmRelays : [],
         created_at: Math.floor(Date.now() / 1000)
-      };
-
-      validateTemplate(template);
+      });
       
       const encoded = encodeTemplate(template);
       const url = `${window.location.origin}${window.location.pathname}#/apply/${encoded}`;
@@ -46,8 +44,8 @@ const TemplateCreator = () => {
       navigator.clipboard?.writeText(url).catch(() => {});
       
       setError('');
-    } catch (err) {
-      setError(err.message);
+    } catch {
+      setError('Check the template name and endpoint values.');
     }
   };
 
