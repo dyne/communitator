@@ -2,9 +2,9 @@
 const sourceUrl = 'https://git.basspistol.org/hq/Communitator'
 
 const channels = [
-  { kind: '10002', name: 'Main relays', note: 'Inbox + outbox', tone: 'orange' },
-  { kind: '10063', name: 'Blossom', note: 'Media servers', tone: 'green' },
-  { kind: '10050', name: 'DM relays', note: 'Private messages', tone: 'gold' }
+  { kind: '10002', name: 'Main relays', note: 'Inbox + outbox', tone: 'orange', spec: 'NIP-65', specUrl: 'https://github.com/nostr-protocol/nips/blob/master/65.md' },
+  { kind: '10063', name: 'Blossom', note: 'Media servers', tone: 'green', spec: 'NIP-B7', specUrl: 'https://github.com/nostr-protocol/nips/blob/master/B7.md' },
+  { kind: '10050', name: 'DM relays', note: 'Private messages', tone: 'gold', spec: 'NIP-17', specUrl: 'https://github.com/nostr-protocol/nips/blob/master/17.md' }
 ]
 
 const steps = [
@@ -18,7 +18,7 @@ const steps = [
   <div class="signal-home">
     <header class="signal-hero">
       <div class="signal-hero__copy">
-        <h1>Put your community on the right relays.</h1>
+        <h1>Put your Nostr community on the right relays.</h1>
         <p class="signal-hero__lede">
           Build one reviewable Nostr settings template for relays, media, and private messages. Share the link; your members choose when to sign.
         </p>
@@ -38,7 +38,7 @@ const steps = [
           <div class="routing-console__channels">
             <div v-for="channel in channels" :key="channel.kind" class="channel-strip" :class="`channel-strip--${channel.tone}`">
               <span class="channel-strip__lamp" aria-hidden="true"></span>
-              <span class="channel-strip__kind">{{ channel.kind }}</span>
+              <a class="channel-strip__kind" :href="channel.specUrl" :aria-label="`Nostr event kind ${channel.kind}, defined by ${channel.spec}`">{{ channel.kind }}</a>
               <strong>{{ channel.name }}</strong>
               <small>{{ channel.note }}</small>
             </div>
@@ -59,7 +59,9 @@ const steps = [
             <text x="458" y="164">BLAST RELAYS</text>
           </svg>
           <div class="route-mobile" aria-label="Kinds 10002, 10063, and 10050 are signed through NIP-07 and published to community and blast relays.">
-            <div class="route-mobile__sources"><code>10002</code><code>10063</code><code>10050</code></div>
+            <div class="route-mobile__sources">
+              <a v-for="channel in channels" :key="channel.kind" :href="channel.specUrl" :aria-label="`Nostr event kind ${channel.kind}, defined by ${channel.spec}`"><code>{{ channel.kind }}</code></a>
+            </div>
             <span aria-hidden="true">↓</span>
             <strong>NIP-07 signer</strong>
             <span aria-hidden="true">↓</span>
@@ -92,16 +94,18 @@ const steps = [
 
     <section class="event-log" aria-labelledby="event-log-title">
       <div class="event-log__intro">
-        <h2 id="event-log-title">Three channels. One deliberate hand-off.</h2>
-        <p>Communitator publishes the parts of a member’s Nostr setup as their standard replaceable events. The configured main relays and the blast relay set both receive the updates for redundancy.</p>
+        <h2 id="event-log-title">Three Nostr events. One deliberate hand-off.</h2>
+        <p>These numbers are Nostr event-kind identifiers—not TCP ports or NIP numbers. A kind tells Nostr clients how to interpret a signed event; each row links to the specification that defines it.</p>
         <a href="./reference/event-kinds">Open the event reference <span aria-hidden="true">→</span></a>
       </div>
       <div class="event-log__table" role="table" aria-label="Nostr event kinds published by Communitator">
         <div class="event-log__row event-log__row--head" role="row">
-          <span role="columnheader">Channel</span><span role="columnheader">Carries</span><span role="columnheader">State</span>
+          <span role="columnheader">Nostr event kind</span><span role="columnheader">Carries</span><span role="columnheader">Defined by</span>
         </div>
         <div v-for="channel in channels" :key="channel.kind" class="event-log__row" role="row">
-          <code role="cell">{{ channel.kind }}</code><strong role="cell">{{ channel.name }}</strong><span role="cell">Ready</span>
+          <a class="event-log__kind" :href="channel.specUrl" role="cell" :aria-label="`Read the specification for Nostr event kind ${channel.kind}`"><code>{{ channel.kind }}</code></a>
+          <strong role="cell">{{ channel.name }}</strong>
+          <a class="event-log__spec" :href="channel.specUrl" role="cell">{{ channel.spec }} <span aria-hidden="true">↗</span></a>
         </div>
       </div>
     </section>

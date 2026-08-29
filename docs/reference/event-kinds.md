@@ -5,9 +5,9 @@ description: The Nostr replaceable events Communitator prepares and publishes.
 
 # Event kinds
 
-Communitator publishes up to three Nostr event kinds from one template. Each event is created at apply time and signed by the member’s NIP-07 extension.
+Communitator publishes up to three Nostr event kinds from one template. These integers are event-kind identifiers, not TCP ports or NIP numbers: a kind tells Nostr clients how to interpret the event, while a NIP number identifies the protocol document that defines it. Each event is created at apply time and signed by the member’s NIP-07 extension.
 
-## Kind 10002 — relay list
+## Kind 10002 — relay list ([NIP-65](https://github.com/nostr-protocol/nips/blob/master/65.md))
 
 Each valid main relay becomes an `r` tag.
 
@@ -21,7 +21,7 @@ Each valid main relay becomes an `r` tag.
 
 The member’s main relay URLs are also included among the publish destinations for this event.
 
-## Kind 10063 — Blossom servers
+## Kind 10063 — Blossom servers ([NIP-B7](https://github.com/nostr-protocol/nips/blob/master/B7.md))
 
 Each valid server becomes a `server` tag.
 
@@ -31,7 +31,7 @@ Each valid server becomes a `server` tag.
 
 The source application preserves the listed order. The event is published to the blast set and to the main relay URLs carried by the template.
 
-## Kind 10050 — DM relays
+## Kind 10050 — DM relays ([NIP-17](https://github.com/nostr-protocol/nips/blob/master/17.md))
 
 Each valid DM relay becomes a `relay` tag.
 

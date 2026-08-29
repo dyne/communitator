@@ -34,11 +34,13 @@ The template data is URL-encoded. Treat a shared link as public configuration, n
 
 Communitator prepares three standard replaceable Nostr events when their corresponding settings are present.
 
-| Kind | Settings | Tags |
-| --- | --- | --- |
-| `10002` | Main relay list | `r`, relay URL, optional `read` or `write` marker |
-| `10063` | Blossom servers | `server`, HTTPS URL |
-| `10050` | DM relays | `relay`, WebSocket URL |
+The numbers below are Nostr event-kind identifiers—not TCP ports or NIP numbers. The linked Nostr Implementation Possibilities (NIPs) define what each event carries.
+
+| Nostr event kind | Settings | Tags | Defined by |
+| --- | --- | --- | --- |
+| [`10002`](https://github.com/nostr-protocol/nips/blob/master/65.md) | Main relay list | `r`, relay URL, optional `read` or `write` marker | [NIP-65](https://github.com/nostr-protocol/nips/blob/master/65.md) |
+| [`10063`](https://github.com/nostr-protocol/nips/blob/master/B7.md) | Blossom servers | `server`, HTTPS URL | [NIP-B7](https://github.com/nostr-protocol/nips/blob/master/B7.md) |
+| [`10050`](https://github.com/nostr-protocol/nips/blob/master/17.md) | DM relays | `relay`, WebSocket URL | [NIP-17](https://github.com/nostr-protocol/nips/blob/master/17.md) |
 
 See the [event-kind reference](../reference/event-kinds) for the exact behavior.
 
