@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { encodeTemplate, generateTemplateId, validateTemplate, getCommunityTemplates } from '../utils/templates';
 import RelayList from './RelayList';
 

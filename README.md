@@ -48,8 +48,8 @@ When new users join Nostr, one of the biggest friction points is choosing and co
 
 ### Prerequisites
 
-- Node.js (v18 or later)
-- npm or yarn
+- Node.js 24.19.0 (the supported version is recorded in `.nvmrc`)
+- npm 11
 - A Nostr extension (Alby, Nos2x, etc.)
 
 ### Setup
@@ -58,8 +58,8 @@ Clone the repository.
 
 ```bash
 
-# Install dependencies
-npm install
+# Install the exact locked dependency graph
+npm ci
 
 # Start development server
 npm run dev
@@ -69,7 +69,18 @@ npm run build
 
 ```
 
-The development server will start at `https://localhost:3000` (HTTPS is required for Nostr extensions).
+The development server starts at `http://localhost:3000`. If a browser
+extension requires a secure local context, opt in to HTTPS with certificates
+outside the repository:
+
+```bash
+DEV_HTTPS_KEY_PATH=/absolute/path/localhost-key.pem \
+DEV_HTTPS_CERT_PATH=/absolute/path/localhost.pem \
+npm run dev
+```
+
+Both variables are required together. The normal development and production
+build commands do not read certificate files.
 
 ## Configuration
 
@@ -162,6 +173,10 @@ This creates a `dist` folder with all static assets ready for deployment.
 ### Deploy to Any Static Host
 
 Upload the contents of the `dist` folder to any static web host (Netlify, Vercel, Cloudflare Pages, etc.).
+
+`npm run preview` is useful only for locally inspecting the already-built
+assets; it is not a production server. Use a static host or a configured web
+server to serve `dist/` in production.
 
 ```bash
 #Deploy to your server
