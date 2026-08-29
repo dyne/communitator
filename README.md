@@ -137,6 +137,18 @@ Change the landing defaults in `src/components/TemplateCreator.jsx`:
 
 ## Deployment
 
+### Documentation website
+
+The Dyne-styled VitePress website lives in `docs/` and is deployed to GitHub Pages by `.github/workflows/deploy-docs.yml`.
+
+```bash
+cd docs
+npm ci
+npm run build
+```
+
+For the repository Pages path, build with `BASE_PATH=/communitator/`. In GitHub repository settings, set **Pages → Build and deployment → Source** to **GitHub Actions**.
+
 ### Build for Production
 
 ```bash
@@ -209,4 +221,3 @@ The app works with any NIP-07 compatible Nostr extension:
 GNU GENERAL PUBLIC LICENSE Version 3
 
 ---
-

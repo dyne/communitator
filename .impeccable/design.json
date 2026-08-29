@@ -1,0 +1,135 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-08-29T21:07:56Z",
+  "title": "Design System: Communitator",
+  "extensions": {
+    "colorMeta": {
+      "signal-orange": { "role": "primary", "displayName": "Transmit Orange", "canonical": "#f26b38", "tonalRamp": ["oklch(15% 0.18 45)", "oklch(27% 0.18 45)", "oklch(39% 0.18 45)", "oklch(51% 0.18 45)", "oklch(63% 0.18 45)", "oklch(75% 0.18 45)", "oklch(87% 0.18 45)", "oklch(95% 0.18 45)"] },
+      "signal-orange-hover": { "role": "primary", "displayName": "Transmit Orange Hover", "canonical": "#ff8755", "tonalRamp": ["oklch(15% 0.16 45)", "oklch(27% 0.16 45)", "oklch(39% 0.16 45)", "oklch(51% 0.16 45)", "oklch(63% 0.16 45)", "oklch(75% 0.16 45)", "oklch(87% 0.16 45)", "oklch(95% 0.16 45)"] },
+      "signal-green": { "role": "secondary", "displayName": "Review Green", "canonical": "#69b49b", "tonalRamp": ["oklch(15% 0.1 165)", "oklch(27% 0.1 165)", "oklch(39% 0.1 165)", "oklch(51% 0.1 165)", "oklch(63% 0.1 165)", "oklch(75% 0.1 165)", "oklch(87% 0.1 165)", "oklch(95% 0.1 165)"] },
+      "signal-gold": { "role": "tertiary", "displayName": "Publish Gold", "canonical": "#ddbc4f", "tonalRamp": ["oklch(15% 0.14 90)", "oklch(27% 0.14 90)", "oklch(39% 0.14 90)", "oklch(51% 0.14 90)", "oklch(63% 0.14 90)", "oklch(75% 0.14 90)", "oklch(87% 0.14 90)", "oklch(95% 0.14 90)"] },
+      "signal-red": { "role": "tertiary", "displayName": "Fault Red", "canonical": "#c64a38", "tonalRamp": ["oklch(15% 0.15 28)", "oklch(27% 0.15 28)", "oklch(39% 0.15 28)", "oklch(51% 0.15 28)", "oklch(63% 0.15 28)", "oklch(75% 0.15 28)", "oklch(87% 0.15 28)", "oklch(95% 0.15 28)"] },
+      "console": { "role": "neutral", "displayName": "Console Black", "canonical": "#171b19", "tonalRamp": ["oklch(15% 0.015 155)", "oklch(27% 0.015 155)", "oklch(39% 0.015 155)", "oklch(51% 0.015 155)", "oklch(63% 0.015 155)", "oklch(75% 0.015 155)", "oklch(87% 0.015 155)", "oklch(95% 0.015 155)"] },
+      "console-raised": { "role": "neutral", "displayName": "Raised Console", "canonical": "#222824", "tonalRamp": ["oklch(15% 0.018 155)", "oklch(27% 0.018 155)", "oklch(39% 0.018 155)", "oklch(51% 0.018 155)", "oklch(63% 0.018 155)", "oklch(75% 0.018 155)", "oklch(87% 0.018 155)", "oklch(95% 0.018 155)"] },
+      "paper": { "role": "neutral", "displayName": "Station Paper", "canonical": "#f1ead8", "tonalRamp": ["oklch(15% 0.035 85)", "oklch(27% 0.035 85)", "oklch(39% 0.035 85)", "oklch(51% 0.035 85)", "oklch(63% 0.035 85)", "oklch(75% 0.035 85)", "oklch(87% 0.035 85)", "oklch(95% 0.035 85)"] },
+      "paper-raised": { "role": "neutral", "displayName": "Raised Paper", "canonical": "#faf6e9", "tonalRamp": ["oklch(15% 0.025 85)", "oklch(27% 0.025 85)", "oklch(39% 0.025 85)", "oklch(51% 0.025 85)", "oklch(63% 0.025 85)", "oklch(75% 0.025 85)", "oklch(87% 0.025 85)", "oklch(95% 0.025 85)"] },
+      "paper-alt": { "role": "neutral", "displayName": "Ledger Paper", "canonical": "#e8dfcb", "tonalRamp": ["oklch(15% 0.035 85)", "oklch(27% 0.035 85)", "oklch(39% 0.035 85)", "oklch(51% 0.035 85)", "oklch(63% 0.035 85)", "oklch(75% 0.035 85)", "oklch(87% 0.035 85)", "oklch(95% 0.035 85)"] },
+      "ink": { "role": "neutral", "displayName": "Control Ink", "canonical": "#1d2421", "tonalRamp": ["oklch(15% 0.015 155)", "oklch(27% 0.015 155)", "oklch(39% 0.015 155)", "oklch(51% 0.015 155)", "oklch(63% 0.015 155)", "oklch(75% 0.015 155)", "oklch(87% 0.015 155)", "oklch(95% 0.015 155)"] },
+      "ink-muted": { "role": "neutral", "displayName": "Muted Ink", "canonical": "#5e665f", "tonalRamp": ["oklch(15% 0.015 155)", "oklch(27% 0.015 155)", "oklch(39% 0.015 155)", "oklch(51% 0.015 155)", "oklch(63% 0.015 155)", "oklch(75% 0.015 155)", "oklch(87% 0.015 155)", "oklch(95% 0.015 155)"] },
+      "console-dark": { "role": "neutral", "displayName": "Console Black · Dark", "canonical": "#0d100e", "tonalRamp": ["oklch(15% 0.012 155)", "oklch(27% 0.012 155)", "oklch(39% 0.012 155)", "oklch(51% 0.012 155)", "oklch(63% 0.012 155)", "oklch(75% 0.012 155)", "oklch(87% 0.012 155)", "oklch(95% 0.012 155)"] },
+      "console-raised-dark": { "role": "neutral", "displayName": "Raised Console · Dark", "canonical": "#191e1b", "tonalRamp": ["oklch(15% 0.015 155)", "oklch(27% 0.015 155)", "oklch(39% 0.015 155)", "oklch(51% 0.015 155)", "oklch(63% 0.015 155)", "oklch(75% 0.015 155)", "oklch(87% 0.015 155)", "oklch(95% 0.015 155)"] },
+      "paper-dark": { "role": "neutral", "displayName": "Station Paper · Dark", "canonical": "#171b19", "tonalRamp": ["oklch(15% 0.015 155)", "oklch(27% 0.015 155)", "oklch(39% 0.015 155)", "oklch(51% 0.015 155)", "oklch(63% 0.015 155)", "oklch(75% 0.015 155)", "oklch(87% 0.015 155)", "oklch(95% 0.015 155)"] },
+      "paper-raised-dark": { "role": "neutral", "displayName": "Raised Paper · Dark", "canonical": "#202622", "tonalRamp": ["oklch(15% 0.018 155)", "oklch(27% 0.018 155)", "oklch(39% 0.018 155)", "oklch(51% 0.018 155)", "oklch(63% 0.018 155)", "oklch(75% 0.018 155)", "oklch(87% 0.018 155)", "oklch(95% 0.018 155)"] },
+      "ink-dark": { "role": "neutral", "displayName": "Control Ink · Dark", "canonical": "#eee8d7", "tonalRamp": ["oklch(15% 0.03 85)", "oklch(27% 0.03 85)", "oklch(39% 0.03 85)", "oklch(51% 0.03 85)", "oklch(63% 0.03 85)", "oklch(75% 0.03 85)", "oklch(87% 0.03 85)", "oklch(95% 0.03 85)"] },
+      "ink-muted-dark": { "role": "neutral", "displayName": "Muted Ink · Dark", "canonical": "#b7bdaf", "tonalRamp": ["oklch(15% 0.02 145)", "oklch(27% 0.02 145)", "oklch(39% 0.02 145)", "oklch(51% 0.02 145)", "oklch(63% 0.02 145)", "oklch(75% 0.02 145)", "oklch(87% 0.02 145)", "oklch(95% 0.02 145)"] }
+    },
+    "typographyMeta": {
+      "display": { "displayName": "Display", "purpose": "The home-page proposition and its compact broadcast block." },
+      "headline": { "displayName": "Headline", "purpose": "Major page and section transmissions." },
+      "title": { "displayName": "Title", "purpose": "Workflow steps and subordinate calls to action." },
+      "body": { "displayName": "Body", "purpose": "Plain-language explanation and guide prose." },
+      "label": { "displayName": "Control Label", "purpose": "Navigation, event kinds, states, controls, and table heads." }
+    },
+    "shadows": [
+      { "name": "console-lift", "value": "0 2.2rem 5rem rgba(32, 35, 30, 0.24)", "purpose": "Broad ambient lift under the principal routing console." },
+      { "name": "signal-lamp-glow", "value": "0 0 1.1rem color-mix(in srgb, var(--strip-tone) 45%, transparent)", "purpose": "Localized glow around an active channel lamp." }
+    ],
+    "motion": [
+      { "name": "control-feedback", "value": "180ms ease-out", "purpose": "Button color, border, and two-pixel lift feedback." },
+      { "name": "transmit-pulse", "value": "5s linear infinite", "purpose": "The single dashed route pulse; removed for reduced motion and replaced by a still mobile chain." }
+    ],
+    "breakpoints": [
+      { "name": "stack", "value": "1100px" },
+      { "name": "narrow", "value": "760px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Signal Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "The primary leader action in Transmit Orange.",
+      "html": "<a class=\"ds-signal-button ds-signal-button--live\" href=\"#\">Read the leader guide</a>",
+      "css": ".ds-signal-button { display:inline-flex; min-height:3rem; align-items:center; justify-content:center; padding:.75rem 1.1rem; border:1px solid var(--signal-orange, #f26b38); color:#131714; background:var(--signal-orange, #f26b38); font:600 .76rem/1.55 \"JetBrains Mono\", monospace; letter-spacing:.025em; text-decoration:none; text-transform:uppercase; transition:background-color 180ms ease-out, border-color 180ms ease-out, transform 180ms ease-out; } .ds-signal-button:hover { border-color:#ff8755; background:#ff8755; transform:translateY(-2px); } .ds-signal-button:focus-visible { outline:3px solid var(--signal-gold, #ddbc4f); outline-offset:4px; } .ds-signal-button:active { transform:translateY(0); }"
+    },
+    {
+      "name": "Quiet Signal Button",
+      "kind": "button",
+      "refersTo": "button-quiet",
+      "description": "A secondary source or inspection action with a strong ledger border.",
+      "html": "<a class=\"ds-signal-button-quiet\" href=\"#\">Inspect the source</a>",
+      "css": ".ds-signal-button-quiet { display:inline-flex; min-height:3rem; align-items:center; justify-content:center; padding:.75rem 1.1rem; border:1px solid color-mix(in srgb, var(--ink, #1d2421) 44%, transparent); color:var(--ink, #1d2421); background:transparent; font:600 .76rem/1.55 \"JetBrains Mono\", monospace; letter-spacing:.025em; text-decoration:none; text-transform:uppercase; transition:background-color 180ms ease-out, color 180ms ease-out, transform 180ms ease-out; } .ds-signal-button-quiet:hover { color:var(--paper-raised, #faf6e9); background:var(--ink, #1d2421); transform:translateY(-2px); } .ds-signal-button-quiet:focus-visible { outline:3px solid var(--signal-gold, #ddbc4f); outline-offset:4px; } .ds-signal-button-quiet:active { transform:translateY(0); }"
+    },
+    {
+      "name": "Routing Console",
+      "kind": "card",
+      "refersTo": "routing-console",
+      "description": "The lifted instrument that explains event routing through NIP-07.",
+      "html": "<figure class=\"ds-console\"><figcaption class=\"ds-console__head\"><span>Community route / illustrative</span><span>TX 03</span></figcaption><div class=\"ds-console__body\"><div class=\"ds-console__route\"><code>10002 · 10063 · 10050</code><span>↓</span><strong>NIP-07 signer</strong><span>↓</span><b>Community · Blast relays</b></div><footer><i></i> Review <i></i> Sign <i></i> Publish</footer></div></figure>",
+      "css": ".ds-console { margin:0; color:#eee8d7; background:var(--console, #171b19); box-shadow:0 2.2rem 5rem rgba(32,35,30,.24); font-family:\"JetBrains Mono\", monospace; } .ds-console__head { display:flex; justify-content:space-between; padding:.85rem 1.2rem; border-bottom:1px solid #3a423d; color:#c3c9bd; font-size:.72rem; font-weight:600; letter-spacing:.08em; text-transform:uppercase; } .ds-console__head span:last-child { color:var(--signal-orange, #f26b38); } .ds-console__body { padding:clamp(1.1rem,2vw,2rem); } .ds-console__route { display:grid; justify-items:center; gap:.55rem; padding:1rem; border-block:1px solid #3a423d; font-size:.72rem; letter-spacing:.04em; text-transform:uppercase; } .ds-console__route code { color:var(--signal-orange, #f26b38); background:transparent; } .ds-console__route b { color:var(--signal-green, #69b49b); } .ds-console footer { display:flex; gap:1.5rem; margin-top:1rem; padding:.85rem 0; border-block:1px solid #3a423d; color:#c3c9bd; font-size:.68rem; text-transform:uppercase; } .ds-console footer i { width:.5rem; height:.5rem; border-radius:50%; background:var(--signal-orange, #f26b38); } .ds-console:focus-within { outline:3px solid var(--signal-gold, #ddbc4f); outline-offset:4px; }"
+    },
+    {
+      "name": "Orange Channel Strip",
+      "kind": "custom",
+      "refersTo": "channel-strip",
+      "description": "A compact event channel with a functional signal lamp.",
+      "html": "<div class=\"ds-channel-strip\"><span class=\"ds-channel-strip__lamp\"></span><code>10002</code><strong>Main relays</strong><small>Inbox + outbox</small></div>",
+      "css": ".ds-channel-strip { display:grid; grid-template-columns:auto 1fr; grid-template-rows:auto auto auto; gap:.15rem .65rem; padding:1rem; color:#eee8d7; background:var(--console-raised, #222824); } .ds-channel-strip__lamp { grid-row:1 / 4; width:.55rem; height:2.8rem; background:var(--signal-orange, #f26b38); box-shadow:0 0 1.1rem color-mix(in srgb, var(--signal-orange, #f26b38) 45%, transparent); } .ds-channel-strip code { color:var(--signal-orange, #f26b38); background:transparent; font:400 .72rem/1.2 \"JetBrains Mono\", monospace; } .ds-channel-strip strong { font:700 .9rem/1.2 Syne, sans-serif; } .ds-channel-strip small { color:#aeb5aa; font:400 .72rem/1.2 \"Space Grotesk\", sans-serif; } .ds-channel-strip:hover .ds-channel-strip__lamp { background:#ff8755; } .ds-channel-strip:focus-within { outline:3px solid var(--signal-gold, #ddbc4f); outline-offset:4px; }"
+    },
+    {
+      "name": "Event Ledger",
+      "kind": "custom",
+      "description": "The ruled reference table for the three published event kinds.",
+      "html": "<div class=\"ds-event-ledger\" role=\"table\"><div class=\"ds-event-ledger__row ds-event-ledger__head\" role=\"row\"><span>Channel</span><span>Carries</span><span>State</span></div><div class=\"ds-event-ledger__row\" role=\"row\"><code>10002</code><strong>Main relays</strong><span>Ready</span></div><div class=\"ds-event-ledger__row\" role=\"row\"><code>10063</code><strong>Blossom</strong><span>Ready</span></div><div class=\"ds-event-ledger__row\" role=\"row\"><code>10050</code><strong>DM relays</strong><span>Ready</span></div></div>",
+      "css": ".ds-event-ledger { color:var(--ink, #1d2421); border-top:3px solid var(--ink, #1d2421); font-family:\"Space Grotesk\", sans-serif; font-variant-numeric:tabular-nums; } .ds-event-ledger__row { display:grid; grid-template-columns:.65fr 1.35fr .55fr; gap:1rem; align-items:center; min-height:5rem; padding-inline:1rem; border-bottom:1px solid color-mix(in srgb, var(--ink, #1d2421) 44%, transparent); } .ds-event-ledger__head { min-height:2.5rem; color:var(--ink-muted, #5e665f); font:400 .72rem/1.2 \"JetBrains Mono\", monospace; letter-spacing:.08em; text-transform:uppercase; } .ds-event-ledger code { color:#a83f28; background:transparent; font:400 1.15rem/1.2 \"JetBrains Mono\", monospace; } .ds-event-ledger__row > span:last-child { justify-self:end; color:#205e4e; font:600 .68rem/1.2 \"JetBrains Mono\", monospace; text-transform:uppercase; } .ds-event-ledger__row:not(.ds-event-ledger__head):hover { background:color-mix(in srgb, var(--ink, #1d2421) 4%, transparent); } .ds-event-ledger:focus-within { outline:3px solid var(--signal-gold, #ddbc4f); outline-offset:4px; }"
+    },
+    {
+      "name": "Control Navigation",
+      "kind": "nav",
+      "description": "A slim monospaced channel index with an orange active frequency.",
+      "html": "<nav class=\"ds-control-nav\" aria-label=\"Documentation\"><a class=\"ds-control-nav__active\" href=\"#\">Leader guide</a><a href=\"#\">How it works</a><a href=\"#\">Reference</a><a href=\"#\">Source ↗</a></nav>",
+      "css": ".ds-control-nav { display:flex; align-items:center; gap:1.5rem; padding:.85rem 1rem; border-bottom:1px solid color-mix(in srgb, var(--ink, #1d2421) 18%, transparent); background:color-mix(in srgb, var(--paper, #f1ead8) 92%, transparent); backdrop-filter:blur(14px); } .ds-control-nav a { color:var(--ink, #1d2421); font:600 .72rem/1.2 \"JetBrains Mono\", monospace; letter-spacing:.04em; text-decoration:none; text-transform:uppercase; } .ds-control-nav a:hover, .ds-control-nav__active { color:#a83f28 !important; } .ds-control-nav a:focus-visible { outline:3px solid var(--signal-gold, #ddbc4f); outline-offset:4px; } .ds-control-nav a:active { color:#88301e; }"
+    },
+    {
+      "name": "Consent Sequence",
+      "kind": "custom",
+      "description": "The fixed review-to-publish sequence that preserves member consent.",
+      "html": "<div class=\"ds-consent-sequence\"><span>Review</span><i></i><span>Connect</span><i></i><span>Sign</span><i></i><span>Publish</span></div>",
+      "css": ".ds-consent-sequence { display:grid; grid-template-columns:auto 1fr auto 1fr auto 1fr auto; align-items:center; gap:.8rem; padding-block:1.2rem; border-block:1px solid #638175; color:#efe9d9; background:#283b35; font:600 .68rem/1.2 \"JetBrains Mono\", monospace; text-transform:uppercase; } .ds-consent-sequence i { height:1px; background:#77978b; } .ds-consent-sequence:hover i { background:var(--signal-green, #69b49b); } .ds-consent-sequence:focus-within { outline:3px solid var(--signal-gold, #ddbc4f); outline-offset:4px; } @media (max-width:760px) { .ds-consent-sequence { grid-template-columns:1fr; align-items:start; gap:.65rem; } .ds-consent-sequence i { width:1px; height:1rem; margin-left:.2rem; } }"
+    }
+  ],
+  "narrative": {
+    "northStar": "Broadcast Control Log",
+    "overview": "Communitator looks like a community-radio control room recorded on a warm paper station log. Dense protocol facts become channels, routing lines, status lamps, and ruled tables; these devices always explain real product structure rather than acting as decoration. The result is technical without being cryptic and expressive without disguising consent or relay behavior.\n\nThe system alternates generous paper fields with console-black operational bands. Oversized geometric headings establish the transmission, plain body copy explains it, and compact monospaced labels identify controls and protocol states. Most surfaces remain flat; one routing console earns physical lift because it is the page's live explanatory instrument.",
+    "keyCharacteristics": [
+      "Warm paper and console-black fields with orange, green, and gold signal accents.",
+      "Square-edged controls, hard rules, compact log labels, and tabular numerals.",
+      "Oversized Syne headlines paired with readable Space Grotesk prose.",
+      "Operational imagery made from real event kinds, signing steps, and relay destinations.",
+      "One restrained signal pulse, with a still alternative for reduced motion and narrow screens."
+    ],
+    "rules": [
+      { "name": "The Signal Rarity Rule", "body": "Orange, green, gold, and red identify an action, channel, focus, or state; never flood a surface with them when a label or lamp will do.", "section": "colors" },
+      { "name": "The Two Materials Rule", "body": "Reading happens on paper and operation happens on console black. Introduce another large surface color only when it communicates a distinct product state, as the consent-green trust band does.", "section": "colors" },
+      { "name": "The Three Voices Rule", "body": "Syne broadcasts, Space Grotesk explains, and JetBrains Mono labels. Do not exchange their jobs.", "section": "typography" },
+      { "name": "The Short Transmission Rule", "body": "Large display lines stay short and balanced; long technical explanation belongs in body copy below or beside them.", "section": "typography" },
+      { "name": "The Composition Change Rule", "body": "Responsive behavior may change the information diagram, but it must preserve every source, signing point, and destination.", "section": "layout" },
+      { "name": "The One Instrument Rule", "body": "Keep ordinary cards and content regions flat; reserve ambient elevation for the routing console or an equally central operational instrument.", "section": "elevation" },
+      { "name": "The Literal Circle Rule", "body": "Rounded geometry denotes a light, node, or fastener—not softness or friendliness.", "section": "shapes" }
+    ],
+    "dos": [
+      "Do use Transmit Orange for the primary action or active route and preserve its rarity.",
+      "Do make protocol structure visible through real kinds, signing points, destinations, and states.",
+      "Do preserve square controls, hard rules, tabular numerals, and the three-font role system.",
+      "Do replace the route drawing with the implemented labeled vertical chain below 760px.",
+      "Do respect reduced motion by collapsing the signal pulse to a still route."
+    ],
+    "donts": [
+      "Don't add decorative knobs, meters, waveform art, or radio jargon that carries no product information.",
+      "Don't round cards and buttons into generic friendly pills.",
+      "Don't use ambient shadows on ordinary content containers.",
+      "Don't use signal colors as broad decorative backgrounds.",
+      "Don't hide review and consent behind an action-first presentation."
+    ]
+  }
+}

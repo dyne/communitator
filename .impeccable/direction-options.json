@@ -1,0 +1,165 @@
+{
+  "title": "Choose Communitator’s visual world",
+  "question": "Choose the world that should guide the new VitePress site, or re-roll the hand.",
+  "options": [
+    {
+      "id": "assigned",
+      "label": "The Assembly Docket",
+      "kicker": "THE ROLL",
+      "lineage": "co-operative meeting packets and community noticeboards",
+      "thesis": "Communitator becomes the working packet a community leader brings to the table, marks up, and passes on.",
+      "palette": ["#f2ead7", "#1c2623", "#c44c32", "#24766b", "#e1bd52"],
+      "materials": ["uncoated stock", "registration ink", "pinned routing slips"],
+      "viewport": "A full-width assembly sheet turns one relay policy into a visible route from leader to community, with the shareable template as the hand-off artifact.",
+      "risk": "The paper language must stay operational and current, never drift into scrapbook nostalgia.",
+      "raised": [
+        {"from": "Parametric Identity", "raise": "Every route mark, state, and accent now derives from one repeatable template grammar."},
+        {"from": "Data Sublime", "raise": "Dense configuration details receive uncompromising alignment and information rhythm."},
+        {"from": "Cutting Bench", "raise": "The visitor’s last useful step remains visibly marked across the reading journey."},
+        {"from": "Cyclorama", "raise": "Each configuration phase carries a text label and pattern, never color alone."},
+        {"from": "Daylight Section", "raise": "The whole page reads as one continuous section through a community’s setup."}
+      ],
+      "wireframe": {"cols": 12, "rows": 10, "regions": [
+        {"label": "assembly masthead", "x": 0, "y": 0, "w": 12, "h": 1, "accent": false},
+        {"label": "relay hand-off", "x": 0, "y": 1, "w": 8, "h": 5, "accent": true},
+        {"label": "routing docket", "x": 8, "y": 1, "w": 4, "h": 7, "accent": false},
+        {"label": "leader path", "x": 0, "y": 6, "w": 8, "h": 2, "accent": false},
+        {"label": "proof + source", "x": 0, "y": 8, "w": 12, "h": 2, "accent": true}
+      ]},
+      "comp": ".impeccable/mocks/decision/assigned.webp"
+    },
+    {
+      "id": "model-pick",
+      "label": "Broadcast Control Log",
+      "kicker": "IMPECCABLE’S PICK",
+      "lineage": "community radio control rooms and station logs",
+      "thesis": "A relay template reads like a live broadcast chain: sources patched, levels checked, transmission handed to the community.",
+      "palette": ["#161917", "#e7e0ca", "#ef6b35", "#6fb89e", "#d7b84b"],
+      "materials": ["engraved control labels", "signal lamps", "paper station log"],
+      "viewport": "A wide control surface makes the three event kinds and their destinations legible at a glance, then opens into a leader’s field guide.",
+      "risk": "It is the most familiar metaphor for relays and can become predictable if treated as decorative audio equipment.",
+      "wireframe": {"cols": 12, "rows": 10, "regions": [
+        {"label": "station ID", "x": 0, "y": 0, "w": 3, "h": 10, "accent": false},
+        {"label": "signal path", "x": 3, "y": 0, "w": 9, "h": 6, "accent": true},
+        {"label": "event channels", "x": 3, "y": 6, "w": 6, "h": 4, "accent": false},
+        {"label": "operator action", "x": 9, "y": 6, "w": 3, "h": 4, "accent": true}
+      ]},
+      "comp": ".impeccable/mocks/decision/model-pick.webp"
+    },
+    {
+      "id": "challenger-patent",
+      "label": "Relay Patent Sheet",
+      "verdict": "competitive",
+      "lineage": "utility patent drawing sheets",
+      "thesis": "The complete relay template is shown as one exploded invention whose numbered parts resolve into an exact specification.",
+      "palette": ["#f7f4eb", "#171a18", "#a52824"],
+      "materials": ["india ink", "white bond", "section hatching"],
+      "viewport": "A responsive exploded routing figure connects relay permissions, Blossom servers, DM relays, and signed events with numbered leaders.",
+      "case": "Product clarity is exceptional because every part maps to a specification; community identity is less immediate than the assembly packet.",
+      "risk": "It can imply legal complexity unless the prose remains unusually plain.",
+      "wireframe": {"cols": 12, "rows": 10, "regions": [
+        {"label": "invention title", "x": 0, "y": 0, "w": 12, "h": 1, "accent": false},
+        {"label": "Fig. 1 routing", "x": 0, "y": 1, "w": 8, "h": 7, "accent": true},
+        {"label": "specification", "x": 8, "y": 1, "w": 4, "h": 7, "accent": false},
+        {"label": "claims + action", "x": 0, "y": 8, "w": 12, "h": 2, "accent": true}
+      ]},
+      "comp": ".impeccable/mocks/decision/challenger-patent.webp",
+      "hero": "https://impeccable.style/worlds/cards/notation-diagram-systems-patent-drawing-sheet-hero.webp",
+      "board": "https://impeccable.style/worlds/cards/notation-diagram-systems-patent-drawing-sheet.webp"
+    },
+    {
+      "id": "challenger-parametric",
+      "label": "Parametric Community Mark",
+      "verdict": "declined",
+      "lineage": "generative parametric identities",
+      "thesis": "Each relay configuration seeds a distinct identity that recolors and reshapes the documentation around it.",
+      "palette": ["#151918", "#f4f0e7", "#4e8f7b", "#f0643f"],
+      "materials": ["flat vector fields", "seeded geometry"],
+      "viewport": "A live mark expands into the configured network while the surrounding page adopts the same seed.",
+      "case": "The generated identity competes with the practical task and is not part of community leaders’ current workflow.",
+      "kept": "One source of truth governs every visual state.",
+      "risk": "Variation can weaken recognition and make screenshots inconsistent.",
+      "hero": "https://impeccable.style/worlds/cards/generative-parametric-identity-hero.webp",
+      "board": "https://impeccable.style/worlds/cards/generative-parametric-identity.webp"
+    },
+    {
+      "id": "challenger-data",
+      "label": "Data Sublime",
+      "verdict": "declined",
+      "lineage": "barcode fields and sine lattices",
+      "thesis": "Relay traffic becomes a black-and-white field of exact event columns and transmission bands.",
+      "palette": ["#000000", "#ffffff"],
+      "materials": ["pixel-crisp bars", "hairline rules", "tabular data"],
+      "viewport": "A dense routing field resolves into kinds 10002, 10063, and 10050 as the visitor selects each band.",
+      "case": "It lowers newcomer clarity and does not identify the community-leader use scene.",
+      "kept": "Treat dense technical information as composition, not residue.",
+      "risk": "High density and inversion are exhausting in a reading surface.",
+      "hero": "https://impeccable.style/worlds/cards/ikeda-datamatics-hero.webp",
+      "board": "https://impeccable.style/worlds/cards/ikeda-datamatics.webp"
+    },
+    {
+      "id": "challenger-bench",
+      "label": "Cutting Bench",
+      "verdict": "declined",
+      "lineage": "film select rails and work prints",
+      "thesis": "The setup journey advances as a strip of inspected frames, with deferred details kept on reachable pins.",
+      "palette": ["#080908", "#f07a2f", "#f6f2e8"],
+      "materials": ["coarse film grain", "grease marks", "tape flags"],
+      "viewport": "The creator-to-member journey scrubs across fixed frames and stops at the shareable template hand-off.",
+      "case": "The linear edit metaphor obscures a configuration that branches by relay type.",
+      "kept": "Persist and re-mark the reader’s last useful position.",
+      "risk": "Horizontal scrubbing can fight long-form documentation.",
+      "hero": "https://impeccable.style/worlds/cards/operate-a-cutting-bench-select-rail-hero.webp",
+      "board": "https://impeccable.style/worlds/cards/operate-a-cutting-bench-select-rail.webp"
+    },
+    {
+      "id": "challenger-cyc",
+      "label": "Relay Dawn",
+      "verdict": "declined",
+      "lineage": "theater cyclorama lighting",
+      "thesis": "A community network moves from blackout to fully connected day through inspectable configuration cues.",
+      "palette": ["#050607", "#2454a6", "#c65f73", "#f7f4e8"],
+      "materials": ["stage light", "infinite horizon", "cue plot"],
+      "viewport": "A horizon shifts through named relay states while the three signed events become visible actors.",
+      "case": "The atmospheric transition is memorable but too indirect for configuration documentation.",
+      "kept": "Name every color state and provide a motion-free equivalent.",
+      "risk": "The story can promise spectacle where readers need exact instructions.",
+      "hero": "https://impeccable.style/worlds/cards/stagecraft-theater-lighting-cyclorama-dawn-hero.webp",
+      "board": "https://impeccable.style/worlds/cards/stagecraft-theater-lighting-cyclorama-dawn.webp"
+    },
+    {
+      "id": "challenger-daylight",
+      "label": "Daylight Section",
+      "verdict": "declined",
+      "lineage": "architectural daylight sections",
+      "thesis": "A continuous cutaway shows information entering, warming, and leaving each room of a community network.",
+      "palette": ["#f1eee2", "#272a27", "#d6a43b", "#506c83"],
+      "materials": ["limewash", "charcoal poche", "sun-angle annotation"],
+      "viewport": "One long section follows a template from leader through signing to the relay destinations beyond.",
+      "case": "The continuous journey is clear, but the architectural scene does not belong naturally to community operators.",
+      "kept": "Make the whole site read as one continuous, inhabited section.",
+      "risk": "The metaphor can become more visible than the product mechanism.",
+      "hero": "https://impeccable.style/worlds/cards/architecture-inhabitable-space-daylight-section-hero.webp",
+      "board": "https://impeccable.style/worlds/cards/architecture-inhabitable-space-daylight-section.webp"
+    }
+  ],
+  "reroll": {"registers": ["safer", "bolder"]},
+  "buildPath": {"value": "code", "toggle": true},
+  "canon": true,
+  "canonCard": {
+    "label": "The category standard",
+    "thesis": "A polished open-source product landing page followed by conventional documentation.",
+    "palette": ["#ffffff", "#172033", "#6d4aff"],
+    "materials": ["clean grid", "feature tiles", "code samples"],
+    "viewport": "A centered headline, two actions, a product graphic, and a familiar three-feature row.",
+    "risk": "Easy to navigate and equally easy to confuse with another Nostr tool.",
+    "wireframe": {"cols": 12, "rows": 10, "regions": [
+      {"label": "navigation", "x": 0, "y": 0, "w": 12, "h": 1, "accent": false},
+      {"label": "hero copy", "x": 0, "y": 1, "w": 6, "h": 5, "accent": true},
+      {"label": "product graphic", "x": 6, "y": 1, "w": 6, "h": 5, "accent": false},
+      {"label": "feature row", "x": 0, "y": 6, "w": 12, "h": 4, "accent": false}
+    ]},
+    "comp": ".impeccable/mocks/decision/canon.webp"
+  },
+  "steer": true
+}
