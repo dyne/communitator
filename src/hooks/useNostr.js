@@ -1,29 +1,14 @@
 import { useState, useEffect, useCallback } from 'react';
+import { BLAST_RELAYS, buildKind10002, buildKind10050, buildKind10063, canonicalizeEndpoint, publicationDestinations } from '../utils/templates.js';
 
 /**
  * Public signer contract consumed by the application transport.
  * @typedef {{getPublicKey: () => Promise<string>, signEvent: (event: UnsignedNostrEvent) => Promise<SignedNostrEvent>}} NostrSigner
- * @typedef {{kind: number, pubkey: string, created_at: number, tags: string[][], content: string}} UnsignedNostrEvent
- * @typedef {UnsignedNostrEvent & {id: string, sig: string}} SignedNostrEvent
+ * @typedef {{kind: number, created_at: number, tags: string[][], content: string}} UnsignedNostrEvent
+ * @typedef {UnsignedNostrEvent & {id: string, sig: string, pubkey: string}} SignedNostrEvent
  * @typedef {{url: string, success: boolean, error?: string}} RelayPublicationResult
  * @typedef {{pubkey: string | null, isConnected: boolean, error: string | null, isConnecting: boolean, connect: () => Promise<string>, signEvent: (event: UnsignedNostrEvent) => Promise<SignedNostrEvent>, disconnect: () => void, publishToRelays: (event: SignedNostrEvent, relayUrls: string[], label?: string) => Promise<RelayPublicationResult[]>} & Record<string, unknown>} NostrSession
  */
-
-// Blast relays - configured once, used for publishing
-const BLAST_RELAYS = [
-  'wss://relay.primal.net',
-  'wss://relay.damus.io',
-  'wss://relay.ditto.pub',
-  'wss://offchain.pub',
-  'wss://sendit.nosflare.com',
-  'wss://nostr.mom',
-  'wss://nos.lol',
-  'wss://purplepag.es',
-  'wss://indexer.coracle.social',
-  'wss://user.kindpag.es',
-  'wss://directory.yabu.me',
-  'wss://profiles.nostr1.com'
-];
 
 /** @returns {NostrSession} */
 export const useNostr = () => {
@@ -54,8 +39,8 @@ export const useNostr = () => {
           }
         }
         console.log('ℹ️ No extension found');
-      } catch (e) {
-        console.error('Init error:', e);
+      } catch {
+        console.warn('Signer initialization was unavailable');
       }
     };
 
@@ -91,10 +76,10 @@ export const useNostr = () => {
       setError(null);
       setIsConnecting(false);
       return pk;
-    } catch (e) {
-      setError(e.message);
+    } catch {
+      setError('Unable to connect the signer.');
       setIsConnecting(false);
-      throw e;
+      throw new Error('Unable to connect the signer.');
     }
   }, []);
 
@@ -110,9 +95,9 @@ export const useNostr = () => {
       const signed = await extension.signEvent(event);
       console.log('✅ Event signed');
       return signed;
-    } catch (e) {
-      console.error('Signing failed:', e);
-      throw e;
+    } catch {
+      console.warn('Signer rejected the event');
+      throw new Error('Signer rejected the event.');
     }
   }, [extension]);
 
@@ -172,14 +157,9 @@ export const useNostr = () => {
   const publishToRelays = useCallback(async (event, relayUrls, label = '') => {
     console.log(`Publishing ${label} to ${relayUrls.length} relays...`);
     
-    const validUrls = relayUrls.filter(url => {
-      try {
-        new URL(url);
-        return url.startsWith('wss://') || url.startsWith('ws://');
-      } catch {
-        return false;
-      }
-    });
+    const validUrls = [...new Set(relayUrls.map((url) => {
+      try { return canonicalizeEndpoint(url, 'relay'); } catch { return null; }
+    }).filter(Boolean))];
     
     if (validUrls.length === 0) {
       return [{ url: 'none', success: false, error: 'No valid relay URLs' }];
@@ -199,30 +179,22 @@ export const useNostr = () => {
   // PUBLISH KIND FUNCTIONS
   // ============================================================
 
-  const publishKind = useCallback(async (kind, data, pubkey, userRelayUrls = []) => {
+  const publishKind = useCallback(async (event, destinations) => {
     if (!extension) {
       throw new Error('No Nostr extension connected');
     }
 
-    const event = {
-      kind,
-      pubkey,
-      created_at: Math.floor(Date.now() / 1000),
-      tags: data.tags || [],
-      content: data.content || ''
-    };
-
-    console.log(`Signing kind ${kind} event...`);
+    console.log(`Signing kind ${event.kind} event...`);
     const signedEvent = await signEvent(event);
-    console.log(`Kind ${kind} event signed successfully`);
+    console.log(`Kind ${event.kind} event signed successfully`);
+    const allRelays = destinations;
+    const blastUrls = BLAST_RELAYS.map(({ url }) => url);
+    console.log(`Publishing kind ${event.kind} to ${allRelays.length} relays (${blastUrls.length} blast)`);
 
-    const allRelays = [...new Set([...BLAST_RELAYS, ...userRelayUrls])];
-    console.log(`Publishing kind ${kind} to ${allRelays.length} relays (${BLAST_RELAYS.length} blast + ${userRelayUrls.length} user)`);
-
-    const results = await publishToRelays(signedEvent, allRelays, `kind ${kind}`);
+    const results = await publishToRelays(signedEvent, allRelays, `kind ${event.kind}`);
     
-    const blastResults = results.filter(r => BLAST_RELAYS.includes(r.url));
-    const userResults = results.filter(r => userRelayUrls.includes(r.url));
+    const blastResults = results.filter(r => blastUrls.includes(r.url));
+    const userResults = results.filter(r => !blastUrls.includes(r.url));
     
     return {
       event: signedEvent,
@@ -232,44 +204,16 @@ export const useNostr = () => {
     };
   }, [extension, signEvent, publishToRelays]);
 
-  const publishKind10002 = useCallback(async (relays, pubkey) => {
-    const validRelays = relays.filter(r => r.url && r.url.trim() !== '');
-    if (validRelays.length === 0) {
-      throw new Error('No valid relays to publish');
-    }
-    const tags = validRelays.map(relay => {
-      const params = [];
-      // Read only
-      if (relay.read && !relay.write) {
-        params.push('read');
-      }
-      // Write only
-      else if (!relay.read && relay.write) {
-        params.push('write');
-      }
-      // If both are true or both are false → no tags (default behavior)
-      return ['r', relay.url, ...params];
-    });
-    const userRelayUrls = validRelays.map(r => r.url);
-    return await publishKind(10002, { tags }, pubkey, userRelayUrls);
+  const publishKind10002 = useCallback(async (template, createdAt = Math.floor(Date.now() / 1000)) => {
+    return publishKind(buildKind10002(template, createdAt), publicationDestinations(template));
   }, [publishKind]);
 
-  const publishKind10063 = useCallback(async (servers, pubkey, allUserRelays = []) => {
-    const validServers = servers.filter(s => s.url && s.url.trim() !== '');
-    if (validServers.length === 0) {
-      throw new Error('No valid blossom servers');
-    }
-    const tags = validServers.map(server => ['server', server.url]);
-    return await publishKind(10063, { tags }, pubkey, allUserRelays);
+  const publishKind10063 = useCallback(async (template, createdAt = Math.floor(Date.now() / 1000)) => {
+    return publishKind(buildKind10063(template, createdAt), publicationDestinations(template));
   }, [publishKind]);
 
-  const publishKind10050 = useCallback(async (relays, pubkey, allUserRelays = []) => {
-    const validRelays = relays.filter(r => r.url && r.url.trim() !== '');
-    if (validRelays.length === 0) {
-      throw new Error('No valid DM relays');
-    }
-    const tags = validRelays.map(relay => ['relay', relay.url]);
-    return await publishKind(10050, { tags }, pubkey, allUserRelays);
+  const publishKind10050 = useCallback(async (template, createdAt = Math.floor(Date.now() / 1000)) => {
+    return publishKind(buildKind10050(template, createdAt), publicationDestinations(template));
   }, [publishKind]);
 
   // ============================================================

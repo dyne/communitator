@@ -62,6 +62,6 @@ describe('signer and relay characterization', () => {
     });
     unmount();
 
-    expect(publication).toEqual([{ url: 'wss://relay.example', success: true }]);
+    expect(publication).toEqual([{ url: 'wss://relay.example/', success: true }]);
   });
 });

@@ -46,13 +46,13 @@ describe('create-review-apply path', () => {
     );
 
     expect(await screen.findByText('Review fixture')).toBeInTheDocument();
-    expect(screen.getByText('wss://relay.example')).toBeInTheDocument();
+    expect(screen.getByText('wss://relay.example/')).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: /apply template/i }));
 
-    expect(publishKind10002).toHaveBeenCalledWith(
-      [{ url: 'wss://relay.example', read: true, write: true }],
-      'a'.repeat(64)
-    );
+    expect(publishKind10002).toHaveBeenCalledWith(expect.objectContaining({
+      name: 'Review fixture',
+      relays: [{ url: 'wss://relay.example/', read: true, write: true }],
+    }));
     expect(await screen.findByText(/template applied successfully/i)).toBeInTheDocument();
   });
 });
