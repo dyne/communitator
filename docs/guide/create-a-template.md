@@ -43,7 +43,7 @@ Avoid language that asks members to trust the link blindly. The preview is part 
 
 ## Generate and verify the link
 
-Choose **Generate Shareable Template**. Communitator validates the fields, creates an encoded URL, and attempts to copy it to the clipboard.
+Choose **Generate shareable template**. Communitator validates the fields, creates a bounded versioned URL payload, and attempts to copy it to the clipboard. Shared links are public configuration, never a place for secrets; recipients see a review before Connect and a separate Apply action.
 
 Before publishing the link widely:
 

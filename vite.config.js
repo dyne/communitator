@@ -1,4 +1,4 @@
-import { defineConfig } from 'vite';
+import { defineConfig } from 'vitest/config';
 import react from '@vitejs/plugin-react';
 import fs from 'fs';
 
@@ -31,6 +31,9 @@ export function resolveDevHttps(environment = process.env) {
 
 export const appConfig = defineConfig({
   plugins: [react()],
+  test: {
+    include: ['test/**/*.{test,spec}.{js,jsx}'],
+  },
   server: {
     port: 3000,
     open: true,

@@ -19,7 +19,7 @@ Each valid main relay becomes an `r` tag.
 - A write-only relay includes `write`.
 - A relay used for both directions has no third tag value.
 
-The member’s main relay URLs are also included among the publish destinations for this event.
+The signed event is published to the configured blast destinations after explicit user approval.
 
 ## Kind 10063 — Blossom servers ([NIP-B7](https://github.com/nostr-protocol/nips/blob/master/B7.md))
 
@@ -29,7 +29,7 @@ Each valid server becomes a `server` tag.
 ["server", "https://media.example"]
 ```
 
-The source application preserves the listed order. The event is published to the blast set and to the main relay URLs carried by the template.
+The source application preserves the listed order. The event is published to the configured blast set after explicit user approval.
 
 ## Kind 10050 — DM relays ([NIP-17](https://github.com/nostr-protocol/nips/blob/master/17.md))
 
@@ -39,7 +39,7 @@ Each valid DM relay becomes a `relay` tag.
 ["relay", "wss://dm.example"]
 ```
 
-The event is published to the blast set and to the template’s main relay URLs.
+The event is published to the configured blast set after explicit user approval.
 
 ## Shared event fields
 
