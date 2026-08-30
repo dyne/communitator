@@ -14,7 +14,7 @@ Communitator turns a community’s Nostr connection policy into one portable, re
 3. Communitator encodes the complete template into the URL.
 4. A member opens the URL and reviews the template endpoints, every configured blast destination, and every canonical template relay destination in distinct groups.
 5. The member connects a NIP-07-compatible extension and chooses to apply the template.
-6. Communitator asks the extension to sign the relevant events and publishes them to the configured relays and the blast relay set.
+6. Communitator asks the extension to sign the relevant events and publishes them to the deduplicated union of configured blast destinations and reviewed template main relays.
 
 Nothing is signed when a template is created or merely opened.
 

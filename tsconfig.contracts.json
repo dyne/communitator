@@ -1,0 +1,14 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "checkJs": false,
+    "noImplicitAny": true
+  },
+  "files": [
+    "src/types/nostr-extension.d.ts",
+    "src/hooks/useNostr.js",
+    "src/components/TemplateApplier.jsx"
+  ],
+  "include": [],
+  "exclude": []
+}

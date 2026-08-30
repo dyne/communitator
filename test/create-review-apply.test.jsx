@@ -105,7 +105,7 @@ describe('create-review-apply path', () => {
     render(
       <MemoryRouter initialEntries={[`/apply/${encoded}`]}>
         <Routes>
-          <Route path="/apply/:encoded" element={<TemplateApplier setConnectedPubkey={vi.fn()} />} />
+          <Route path="/apply/:encoded" element={<TemplateApplier />} />
         </Routes>
       </MemoryRouter>
     );

@@ -13,7 +13,7 @@ class RelayWebSocket {
   send(payload) { const [, event] = JSON.parse(payload); queueMicrotask(() => this.onmessage?.({ data: JSON.stringify(['OK', event.id, true, 'accepted']) })); }
   close() { RelayWebSocket.current--; }
 }
-afterEach(() => { vi.unstubAllGlobals(); vi.restoreAllMocks(); RelayWebSocket.current = 0; RelayWebSocket.max = 0; });
+afterEach(() => { vi.useRealTimers(); vi.unstubAllGlobals(); vi.restoreAllMocks(); RelayWebSocket.current = 0; RelayWebSocket.max = 0; });
 
 describe('signer and relay contracts', () => {
   it('does not request identity on load and only calls it after explicit connect', async () => {
@@ -48,6 +48,103 @@ describe('signer and relay contracts', () => {
     expect(accepted.status).toBe('accepted');
     class RejectingSocket extends RelayWebSocket { send(payload) { const [, event] = JSON.parse(payload); queueMicrotask(() => this.onmessage?.({ data: JSON.stringify(['OK', event.id, false, 'no\u0000thanks']) })); } }
     await expect(publishRelayEvent('wss://relay.example/', { id: 'event-id' }, { WebSocketImpl: RejectingSocket })).resolves.toMatchObject({ status: 'rejected', error: 'no thanks' });
+  });
+
+  it('ignores wrong-id, malformed, non-array, binary, and oversized frames before a valid acknowledgement', async () => {
+    class NoisySocket extends RelayWebSocket {
+      send(payload) {
+        const [, event] = JSON.parse(payload);
+        const frames = [
+          JSON.stringify(['OK', 'wrong-id', true, 'wrong event']),
+          '{',
+          JSON.stringify({ type: 'OK' }),
+          new Uint8Array([1, 2, 3]),
+          'x'.repeat(1025),
+          JSON.stringify(['OK', event.id, true, 'accepted']),
+        ];
+        queueMicrotask(() => frames.forEach((data) => this.onmessage?.({ data })));
+      }
+    }
+
+    await expect(publishRelayEvent('wss://relay.example/', { id: 'event-id' }, { WebSocketImpl: NoisySocket })).resolves.toMatchObject({ status: 'accepted' });
+  });
+
+  it('retains a bounded NOTICE explanation and sanitizes close reasons before settlement', async () => {
+    class NoticeSocket extends RelayWebSocket {
+      send() {
+        queueMicrotask(() => {
+          this.onmessage?.({ data: JSON.stringify(['NOTICE', `maintenance\u0000${'x'.repeat(300)}`]) });
+          this.onclose?.({ reason: '' });
+        });
+      }
+    }
+    const noticed = await publishRelayEvent('wss://relay.example/', { id: 'event-id' }, { WebSocketImpl: NoticeSocket });
+    expect(noticed).toMatchObject({ status: 'network-error' });
+    expect(noticed.error).toHaveLength(240);
+    expect(noticed.error).not.toContain('\u0000');
+
+    class EarlyCloseSocket {
+      constructor() { queueMicrotask(() => this.onclose?.({ reason: 'closed\u0000before open' })); }
+      close() {}
+    }
+    await expect(publishRelayEvent('wss://relay.example/', { id: 'event-id' }, { WebSocketImpl: EarlyCloseSocket })).resolves.toMatchObject({ status: 'network-error', error: 'closed before open' });
+  });
+
+  it('maps constructor and send exceptions to bounded setup and network results', async () => {
+    class ConstructorFailure { constructor() { throw new Error('private constructor detail'); } }
+    class SendFailure {
+      constructor() { queueMicrotask(() => this.onopen?.()); }
+      send() { throw new Error('private send detail'); }
+      close() {}
+    }
+    await expect(publishRelayEvent('wss://relay.example/', { id: 'event-id' }, { WebSocketImpl: ConstructorFailure })).resolves.toEqual({ url: 'wss://relay.example/', status: 'network-error', error: 'Relay setup failed.' });
+    await expect(publishRelayEvent('wss://relay.example/', { id: 'event-id' }, { WebSocketImpl: SendFailure })).resolves.toEqual({ url: 'wss://relay.example/', status: 'network-error', error: 'Relay send failed.' });
+  });
+
+  it('uses one total deadline and clears timers, abort listeners, and socket handlers exactly once', async () => {
+    vi.useFakeTimers();
+    class InspectableSocket {
+      static instance;
+      constructor() { InspectableSocket.instance = this; queueMicrotask(() => this.onopen?.()); }
+      send() {}
+      close = vi.fn();
+    }
+    const controller = new AbortController();
+    const removeListener = vi.spyOn(controller.signal, 'removeEventListener');
+    const pending = publishRelayEvent('wss://relay.example/', { id: 'event-id' }, { WebSocketImpl: InspectableSocket, signal: controller.signal });
+    await Promise.resolve();
+    await vi.advanceTimersByTimeAsync(10_000);
+    await expect(pending).resolves.toEqual({ url: 'wss://relay.example/', status: 'timeout', error: 'Relay timed out.' });
+    const socket = InspectableSocket.instance;
+    expect(socket.close).toHaveBeenCalledTimes(1);
+    expect(socket.onopen).toBeNull();
+    expect(socket.onerror).toBeNull();
+    expect(socket.onclose).toBeNull();
+    expect(socket.onmessage).toBeNull();
+    expect(removeListener).toHaveBeenCalledWith('abort', expect.any(Function));
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
+  it('settles once when success is followed by error and close callbacks', async () => {
+    class RacingSocket {
+      static instance;
+      constructor() { RacingSocket.instance = this; queueMicrotask(() => this.onopen?.()); }
+      send(payload) {
+        const [, event] = JSON.parse(payload);
+        const message = this.onmessage; const error = this.onerror; const close = this.onclose;
+        queueMicrotask(() => {
+          message?.({ data: JSON.stringify(['OK', event.id, true, 'accepted']) });
+          error?.(new Event('error'));
+          close?.({ reason: 'late close' });
+        });
+      }
+      close = vi.fn();
+    }
+    await expect(publishRelayEvent('wss://relay.example/', { id: 'event-id' }, { WebSocketImpl: RacingSocket })).resolves.toMatchObject({ status: 'accepted' });
+    expect(RacingSocket.instance.close).toHaveBeenCalledTimes(1);
+    expect(RacingSocket.instance.onmessage).toBeNull();
+    expect(RacingSocket.instance.onerror).toBeNull();
+    expect(RacingSocket.instance.onclose).toBeNull();
   });
 
   it('deduplicates destinations and caps concurrent relay work', async () => {
@@ -99,6 +196,26 @@ describe('signer and relay contracts', () => {
     const pending = publishRelayEvent('wss://relay.example/', { id: 'event-id' }, { WebSocketImpl: SilentSocket, signal: controller.signal });
     controller.abort();
     await expect(pending).resolves.toMatchObject({ status: 'cancelled' });
+  });
+
+  it('cancels queued and active work without constructing sockets above the shared cap', async () => {
+    class QueuedSocket {
+      static constructed = 0;
+      static active = 0;
+      constructor() { QueuedSocket.constructed += 1; QueuedSocket.active += 1; queueMicrotask(() => this.onopen?.()); }
+      send() {}
+      close() { if (this.closed) return; this.closed = true; QueuedSocket.active -= 1; }
+    }
+    const controller = new AbortController();
+    const publish = createRelayQueue({ WebSocketImpl: QueuedSocket, signal: controller.signal });
+    const pending = Promise.all(Array.from({ length: 12 }, (_, index) => publish(`wss://relay-${index}.example/`, { id: `event-${index}` })));
+    await Promise.resolve();
+    expect(QueuedSocket.constructed).toBe(4);
+    controller.abort();
+    const results = await pending;
+    expect(results.every(({ status }) => status === 'cancelled')).toBe(true);
+    expect(QueuedSocket.constructed).toBe(4);
+    expect(QueuedSocket.active).toBe(0);
   });
 
   it('returns cancelled rather than failed when an apply operation is aborted', async () => {

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { creatorReducer, initialCreatorState } from '../src/components/templateCreatorState.js';
+import { TEMPLATE_LIMITS } from '../src/utils/templates.js';
 
 describe('template creator draft reducer', () => {
   it('updates, adds, removes, resets, and loads presets without mutating prior drafts', () => {
@@ -26,7 +27,7 @@ describe('template creator draft reducer', () => {
 
   it('caps every draft endpoint group and allows a removed row to be added again', () => {
     /** @type {[string, number][]} */
-    const limits = [['relays', 16], ['blossomServers', 8], ['dmRelays', 8]];
+    const limits = [['relays', TEMPLATE_LIMITS.relays], ['blossomServers', TEMPLATE_LIMITS.blossomServers], ['dmRelays', TEMPLATE_LIMITS.dmRelays]];
     for (const [group, limit] of limits) {
       let state = initialCreatorState();
       while (state[group].length < limit) state = creatorReducer(state, { type: 'add', group, value: {} });

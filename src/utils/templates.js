@@ -76,7 +76,6 @@ export const canonicalizeTemplate = (input) => {
   })();
   return freeze({ ...(id === undefined ? {} : { id }), name, description, relays: freezeArray(relays), blossomServers: freezeArray(blossomServers), dmRelays: freezeArray(dmRelays), ...(created_at === undefined ? {} : { created_at }) });
 };
-export const validateTemplate = (template) => { canonicalizeTemplate(template); return true; };
 export const generateTemplateId = () => globalThis.crypto?.randomUUID?.();
 
 const bytesToBase64Url = (bytes) => btoa(String.fromCharCode(...bytes)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/u, '');
@@ -116,7 +115,6 @@ export const decodeTemplate = (encoded) => {
   return canonicalizeTemplate(parsed);
 };
 
-export const getDefaultTemplate = () => canonicalizeTemplate({ id: generateTemplateId(), name: 'Default Relays', description: 'Standard Nostr relay set for beginners', relays: [{ url: 'wss://relay.damus.io', read: true, write: true }, { url: 'wss://nos.lol', read: true, write: true }, { url: 'wss://relay.snort.social', read: true, write: true }], blossomServers: [{ url: 'https://cdn.satellite.earth' }], dmRelays: [{ url: 'wss://relay.private-msgs.com' }], created_at: Math.floor(Date.now() / 1000) });
 const preset = (id, name, description, host) => canonicalizeTemplate({ id, name, description, relays: [{ url: `wss://${host}`, read: false, write: true }, { url: `wss://${host}/inbox`, read: true, write: false }, { url: 'wss://relay.ditto.pub', read: true, write: true }], blossomServers: [{ url: `https://${host}` }, { url: 'https://blossom.primal.net' }], dmRelays: [{ url: `wss://${host}/inbox` }] });
 export const getCommunityTemplates = () => freeze({ 'planet-dyne': preset('planet-dyne', 'Planet Dyne', 'Settings for dynes like you', 'relay.dyne.org'), basspistol: preset('basspistol', 'Basspistol', 'Settings for Basspistol members of the outernational music syndicate', 'basspistol.org'), 'spatia-arcana': preset('spatia-arcana', 'Spatia Arcana', 'Settings for Spatia Arcana', 'spatia-arcana.com'), 'pyramid-fiatjaf': preset('pyramid-fiatjaf', 'Fiatjaf Pyramid', 'Settings for Fiatjaf Pyramid', 'pyramid.fiatjaf.com'), 'neuch-blockchain': preset('neuch-blockchain', 'Neuchatel Blockchain', 'Settings for Neuchatel Blockchain community', 'nestr.nedao.ch'), anon: canonicalizeTemplate({ id: 'anon', name: 'Anon Relays', description: 'Settings set for anons', relays: [{ url: 'wss://nos.lol', read: true, write: true }, { url: 'wss://nostr.mom', read: true, write: true }, { url: 'wss://relay.ditto.pub', read: true, write: true }], blossomServers: [{ url: 'https://blossom.primal.net' }], dmRelays: [{ url: 'wss://nos.lol' }, { url: 'wss://relay.ditto.pub' }] }) });
 
@@ -128,8 +126,6 @@ const buildEvent = (kind, template, created_at, tags) => {
 export const buildKind10002 = (template, created_at) => buildEvent(10002, template, created_at, (value) => value.relays.map(({ url, read, write }) => ['r', url, ...(read && write ? [] : [read ? 'read' : 'write'])]));
 export const buildKind10063 = (template, created_at) => buildEvent(10063, template, created_at, (value) => value.blossomServers.map(({ url }) => ['server', url]));
 export const buildKind10050 = (template, created_at) => buildEvent(10050, template, created_at, (value) => value.dmRelays.map(({ url }) => ['relay', url]));
-export const templateToKind10002Tags = (template) => buildKind10002(template, 0).tags;
-
 export const BLAST_RELAYS = freezeArray(['wss://relay.primal.net', 'wss://relay.damus.io', 'wss://relay.ditto.pub', 'wss://offchain.pub', 'wss://sendit.nosflare.com', 'wss://nostr.mom', 'wss://nos.lol', 'wss://purplepag.es', 'wss://indexer.coracle.social', 'wss://user.kindpag.es', 'wss://directory.yabu.me', 'wss://profiles.nostr1.com'].map((url) => ({ url: canonicalizeEndpoint(url, 'relay') })));
 export const publicationDestinations = (template) => {
   const canonical = canonicalizeTemplate(template);
@@ -144,7 +140,3 @@ export const publicationDestinations = (template) => {
   if (destinations.size > TEMPLATE_LIMITS.destinations) fail('too_many_destinations');
   return freeze([...destinations.values()].map(({ url, blast, template: templateSource }) => freeze({ url, blast, template: templateSource })));
 };
-export const addRelayToTemplate = (template, relay) => canonicalizeTemplate({ ...template, relays: [...template.relays, relay] });
-export const removeRelayFromTemplate = (template, relayUrl) => canonicalizeTemplate({ ...template, relays: template.relays.filter((relay) => relay.url !== relayUrl) });
-export const updateRelayInTemplate = (template, relayUrl, updates) => canonicalizeTemplate({ ...template, relays: template.relays.map((relay) => relay.url === relayUrl ? { ...relay, ...updates } : relay) });
-export const cloneTemplate = (template) => canonicalizeTemplate(template);

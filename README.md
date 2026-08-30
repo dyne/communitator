@@ -106,26 +106,25 @@ Publication uses the union of those configured blast destinations and the canoni
 Add or modify community templates in `src/utils/templates.js`:
 
 ```javascript
-export const getCommunityTemplates = () => {
-  return {
-    'my-community': {
-      id: 'my-community',
-      name: 'My Community',
-      description: 'Official relay set for My Community',
-      relays: [
-        { url: 'wss://relay.mycommunity.com', read: true, write: true },
-        { url: 'wss://relay.damus.io', read: true, write: true }
-      ],
-      blossomServers: [
-        { url: 'https://cdn.mycommunity.com' }
-      ],
-      dmRelays: [
-        { url: 'wss://dm.mycommunity.com' }
-      ]
-    }
-  };
-};
+const myCommunity = canonicalizeTemplate({
+  id: 'my-community',
+  name: 'My Community',
+  description: 'Official relay set for My Community',
+  relays: [
+    { url: 'wss://relay.mycommunity.com', read: true, write: true },
+    { url: 'wss://relay.damus.io', read: true, write: true }
+  ],
+  blossomServers: [{ url: 'https://cdn.mycommunity.com' }],
+  dmRelays: [{ url: 'wss://dm.mycommunity.com' }]
+});
+
+export const getCommunityTemplates = () => Object.freeze({
+  'my-community': myCommunity
+});
 ```
+
+Keep every preset behind `canonicalizeTemplate`; it returns the same deeply
+frozen, bounded shape used for decoded shared links.
 
 ### Creator defaults
 

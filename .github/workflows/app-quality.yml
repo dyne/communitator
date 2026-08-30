@@ -15,6 +15,7 @@ on:
       - 'vitest.config.js'
       - 'eslint.config.js'
       - 'tsconfig.json'
+      - 'tsconfig.contracts.json'
       - '.nvmrc'
       - '.github/workflows/app-quality.yml'
   push:
@@ -32,6 +33,7 @@ on:
       - 'vitest.config.js'
       - 'eslint.config.js'
       - 'tsconfig.json'
+      - 'tsconfig.contracts.json'
       - '.nvmrc'
       - '.github/workflows/app-quality.yml'
 
