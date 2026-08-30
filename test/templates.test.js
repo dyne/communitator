@@ -69,6 +69,8 @@ describe('canonical event builders and destinations', () => {
     const destinations = publicationDestinations(canonicalizeTemplate({ ...fixture, relays: [{ url: BLAST_RELAYS[0].url, read: true, write: true }] }));
     expect(destinations).toHaveLength(BLAST_RELAYS.length);
     expect(Object.isFrozen(destinations)).toBe(true);
+    expect(destinations[0]).toMatchObject({ url: BLAST_RELAYS[0].url, blast: true, template: true });
+    expect(Object.isFrozen(destinations[0])).toBe(true);
   });
   it('ships community presets through the same canonical boundary', () => {
     expect(Object.values(getCommunityTemplates()).every((template) => Object.isFrozen(template) && template.relays.length > 0)).toBe(true);

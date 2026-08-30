@@ -23,4 +23,17 @@ describe('template creator draft reducer', () => {
     const reset = creatorReducer(corrected, { type: 'reset' });
     expect(reset.touched).toEqual({}); expect(reset.shareUrl).toBe('');
   });
+
+  it('caps every draft endpoint group and allows a removed row to be added again', () => {
+    /** @type {[string, number][]} */
+    const limits = [['relays', 16], ['blossomServers', 8], ['dmRelays', 8]];
+    for (const [group, limit] of limits) {
+      let state = initialCreatorState();
+      while (state[group].length < limit) state = creatorReducer(state, { type: 'add', group, value: {} });
+      const capped = creatorReducer(state, { type: 'add', group, value: {} });
+      expect(capped).toBe(state);
+      const reopened = creatorReducer(state, { type: 'remove', group, id: state[group][1].id });
+      expect(creatorReducer(reopened, { type: 'add', group, value: {} })[group]).toHaveLength(limit);
+    }
+  });
 });

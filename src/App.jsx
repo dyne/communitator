@@ -1,7 +1,6 @@
 import { HashRouter, Routes, Route, Link } from 'react-router-dom';
 import TemplateCreator from './components/TemplateCreator';
 import TemplateApplier from './components/TemplateApplier';
-// Remove this line: import './App.css';
 
 function App() {
   return (

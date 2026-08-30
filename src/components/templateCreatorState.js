@@ -1,7 +1,9 @@
+import { TEMPLATE_LIMITS } from '../utils/templates.js';
 /** @typedef {{ id: string, url: string, read?: boolean, write?: boolean }} Endpoint */
 /** @typedef {{ name: string, description: string, selectedPreset: string, shareUrl: string, error: string, touched: Record<string, boolean>, relays: Endpoint[], blossomServers: Endpoint[], showBlossom: boolean, dmRelays: Endpoint[], showDmRelays: boolean, [key: string]: any }} CreatorState */
 /** @typedef {{ type: string, [key: string]: any }} CreatorAction */
 let nextEndpointId = 0;
+const groupLimit = Object.freeze({ relays: TEMPLATE_LIMITS.relays, blossomServers: TEMPLATE_LIMITS.blossomServers, dmRelays: TEMPLATE_LIMITS.dmRelays });
 /** @param {Partial<Endpoint>} values @returns {Endpoint} */
 const endpoint = (values = {}) => ({ id: `endpoint-${nextEndpointId += 1}`, url: '', ...values });
 /** @returns {CreatorState} */
@@ -14,7 +16,7 @@ export function creatorReducer(state, action) { switch (action.type) {
   case 'field': return { ...state, [action.field]: action.value, error: '', shareUrl: '' };
   case 'touched': return { ...state, touched: { ...state.touched, [action.field]: true } };
   case 'touch-many': return { ...state, touched: { ...state.touched, ...Object.fromEntries(action.fields.map((field) => [field, true])) } };
-  case 'add': return { ...state, [action.group]: [...state[action.group], endpoint(action.value)], error: '', shareUrl: '' };
+  case 'add': return state[action.group].length >= groupLimit[action.group] ? state : { ...state, [action.group]: [...state[action.group], endpoint(action.value)], error: '', shareUrl: '' };
   case 'update': return { ...state, [action.group]: update(state[action.group], action.id, action.value), error: '', shareUrl: '' };
   case 'remove': { const touched = { ...state.touched }; delete touched[action.id]; return { ...state, [action.group]: remove(state[action.group], action.id), touched, error: '', shareUrl: '' }; }
   case 'toggle': return { ...state, [action.field]: !state[action.field], error: '', shareUrl: '' };

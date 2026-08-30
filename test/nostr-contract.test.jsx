@@ -56,6 +56,12 @@ describe('signer and relay contracts', () => {
     expect(results).toHaveLength(12); expect(RelayWebSocket.max).toBeLessThanOrEqual(4);
   });
 
+  it('retains immutable destination provenance through relay results', async () => {
+    const results = await publishRelaySet({ id: 'event-id' }, [{ url: 'wss://relay.example', blast: true }, { url: 'wss://relay.example/', template: true }], { WebSocketImpl: RelayWebSocket });
+    expect(results).toEqual([expect.objectContaining({ url: 'wss://relay.example/', blast: true, template: true, status: 'accepted' })]);
+    expect(Object.isFrozen(results[0])).toBe(true);
+  });
+
   it('shares one four-socket queue across every event kind in an operation', async () => {
     class GatedSocket {
       static current = 0; static max = 0; static released = false; static waiting = [];

@@ -99,6 +99,10 @@ test('a rejected event kind produces a partial outcome with per-kind evidence', 
   await connectAndApply(page, { relayMode: 'partial' });
   await expect(page.getByRole('heading', { name: 'Template partially applied' })).toBeVisible();
   await expect(page.locator('.event-result').filter({ hasText: 'Kind 10050' })).toContainText('Accepted by 0 of 13 destinations.');
+  const failed = page.locator('.event-result').filter({ hasText: 'Kind 10050' });
+  await expect(failed).toContainText('configured blast');
+  await expect(failed).toContainText('reviewed template');
+  await expect(failed).toContainText('fixture rejection');
   const state = await fixtureState(page);
   expect(state.signedKinds).toEqual([10002, 10063, 10050]);
   expect(state.maxActiveSockets).toBeLessThanOrEqual(4);
@@ -226,6 +230,19 @@ test('creator validation and endpoint controls work from the keyboard', async ({
   const add = page.getByRole('button', { name: 'Add relay endpoint' }); await add.focus(); await add.press('Enter'); await expect(page.getByLabel('relay endpoint 2', { exact: true })).toBeVisible();
   const remove = page.getByRole('button', { name: 'Remove relay endpoint 2' }); await remove.focus(); await remove.press('Enter'); await expect(page.getByLabel('relay endpoint 2', { exact: true })).toHaveCount(0);
   const toggle = page.getByRole('button', { name: 'Hide Blossom servers (kind 10063)' }); await toggle.focus(); await toggle.press('Space'); await expect(page.getByRole('button', { name: 'Show Blossom servers (kind 10063)' })).toHaveAttribute('aria-expanded', 'false');
+  expect(externalRequests).toEqual([]);
+});
+
+test('keyboard creator limit disables add and permits removal then re-add', async ({ page }) => {
+  await page.goto('/#/');
+  const add = page.getByRole('button', { name: 'Add relay endpoint' });
+  for (let index = 2; index <= 16; index += 1) { await add.focus(); await add.press('Enter'); }
+  await expect(page.getByLabel('relay endpoint 16', { exact: true })).toBeVisible();
+  await expect(add).toBeDisabled();
+  await expect(add).toHaveAccessibleDescription('16 of 16 endpoints configured. Maximum reached.');
+  const remove = page.getByRole('button', { name: 'Remove relay endpoint 16' }); await remove.focus(); await remove.press('Enter');
+  await expect(add).toBeEnabled(); await add.focus(); await add.press('Enter');
+  await expect(page.getByLabel('relay endpoint 16', { exact: true })).toBeVisible();
   expect(externalRequests).toEqual([]);
 });
 

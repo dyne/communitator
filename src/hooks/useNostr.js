@@ -1,4 +1,4 @@
-// @ts-nocheck -- NIP-07 and WebSocket adapters are runtime-injected browser interfaces.
+// @ts-check
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { verifyEvent } from 'nostr-tools';
 import { buildKind10002, buildKind10050, buildKind10063, canonicalizeEndpoint, canonicalizeTemplate, publicationDestinations } from '../utils/templates.js';
@@ -21,6 +21,7 @@ export const verifySignedEvent = (unsigned, signed, identity) => {
 };
 
 /** A bounded one-event-per-destination transport with a single terminal result. */
+/** @param {string} url @param {{id?: string}} event @param {{WebSocketImpl?: typeof WebSocket, signal?: AbortSignal}} [options] */
 export const publishRelayEvent = (url, event, { WebSocketImpl = globalThis.WebSocket, signal } = {}) => new Promise((resolve) => {
   if (signal?.aborted) { resolve({ url, status: 'cancelled' }); return; }
   if (typeof WebSocketImpl !== 'function') { resolve({ url, status: 'network-error', error: 'Relay transport is unavailable.' }); return; }
@@ -52,11 +53,20 @@ export const createRelayQueue = (options = {}) => {
 };
 
 export const publishRelaySet = async (event, destinations, options = {}) => {
-  const requested = [...new Set(destinations.map((url) => { try { return canonicalizeEndpoint(url, 'relay'); } catch { return null; } }).filter(Boolean))];
-  const overflow = requested.slice(RELAY_LIMIT).map((url) => Object.freeze({ url, status: 'rejected', error: 'Relay destination limit exceeded.' }));
+  const requested = new Map();
+  destinations.forEach((destination) => {
+    const value = typeof destination === 'string' ? { url: destination } : destination;
+    try {
+      const url = canonicalizeEndpoint(value?.url, 'relay');
+      const existing = requested.get(url) ?? { url, blast: false, template: false };
+      requested.set(url, { ...existing, blast: existing.blast || value?.blast === true, template: existing.template || value?.template === true });
+    } catch { /* Canonical template and callers provide validated endpoints. */ }
+  });
+  const requestedDestinations = [...requested.values()];
+  const overflow = requestedDestinations.slice(RELAY_LIMIT).map((destination) => Object.freeze({ ...destination, status: 'rejected', error: 'Relay destination limit exceeded.' }));
   const { publishRelay, ...transportOptions } = options;
-  const urls = requested.slice(0, RELAY_LIMIT); const results = new Array(urls.length); let next = 0;
-  const worker = async () => { while (next < urls.length) { const index = next++; results[index] = await (publishRelay ? publishRelay(urls[index], event) : publishRelayEvent(urls[index], event, transportOptions)); } };
+  const urls = requestedDestinations.slice(0, RELAY_LIMIT); const results = new Array(urls.length); let next = 0;
+  const worker = async () => { while (next < urls.length) { const index = next++; const destination = urls[index]; const result = await (publishRelay ? publishRelay(destination.url, event) : publishRelayEvent(destination.url, event, transportOptions)); results[index] = Object.freeze({ ...result, ...destination }); } };
   await Promise.all(Array.from({ length: Math.min(CONCURRENCY, urls.length) }, worker));
   return Object.freeze([...results, ...overflow]);
 };
@@ -79,8 +89,8 @@ const summarize = (events) => {
 };
 
 export const useNostr = () => {
-  const [pubkey, setPubkey] = useState(null); const [error, setError] = useState(null); const [isConnecting, setIsConnecting] = useState(false);
-  const activeOperation = useRef(null); const sessionVersion = useRef(0); const operationVersion = useRef(0); const mounted = useRef(true);
+  const [pubkey, setPubkey] = useState(/** @type {string|null} */ (null)); const [error, setError] = useState(/** @type {string|null} */ (null)); const [isConnecting, setIsConnecting] = useState(false);
+  const activeOperation = useRef(/** @type {AbortController|null} */ (null)); const sessionVersion = useRef(0); const operationVersion = useRef(0); const mounted = useRef(true);
   useEffect(() => { mounted.current = true; return () => { mounted.current = false; activeOperation.current?.abort(); }; }, []);
   const connect = useCallback(async () => {
     setIsConnecting(true); setError(null);
@@ -138,9 +148,9 @@ export const useNostr = () => {
         try {
           const publishRelay = createRelayQueue({ signal: retryController.signal });
           const retried = await Promise.all(currentEvents.map(async ({ event, signer, results }) => {
-            const failedUrls = results.filter(({ status }) => status !== 'accepted').map(({ url }) => url);
-            if (!failedUrls.length) return { event, signer, results };
-            const retryResults = await publishRelaySet(event, failedUrls, { signal: retryController.signal, publishRelay });
+            const failedDestinations = results.filter(({ status }) => status !== 'accepted').map(({ url, blast, template: templateSource }) => ({ url, blast, template: templateSource }));
+            if (!failedDestinations.length) return { event, signer, results };
+            const retryResults = await publishRelaySet(event, failedDestinations, { signal: retryController.signal, publishRelay });
             const replacements = new Map(retryResults.map((result) => [result.url, result]));
             return { event, signer, results: results.map((result) => result.status === 'accepted' ? result : replacements.get(result.url) ?? result) };
           }));
