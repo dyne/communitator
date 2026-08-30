@@ -1,6 +1,6 @@
 # Communitator
 
-A Nostr web application that allows community leaders to create and share relay templates for new users. Users can apply these templates with one click, automatically updating their relay lists (kind 10002), blossom servers (kind 10063), and DM relays (kind 10050).
+A Nostr web application for community leaders to create and share relay recommendations. Members review the canonical template, explicitly connect a signer, then separately approve publication of relay lists (kind 10002), Blossom servers (kind 10063), and DM relays (kind 10050).
 
 ## Overview
 
@@ -10,11 +10,11 @@ When new users join Nostr, one of the biggest friction points is choosing and co
 
 - **Create Relay Templates**: Community leaders can define relay sets with read/write permissions
 - **Shareable Links**: Generate unique URLs for each template
-- **One-Click Apply**: Users apply templates with a single signature
+- **Explicit review and consent**: Connect and Apply are separate; each present event kind is reviewed before signing
 - **Blossom Server Support**: Configure blossom servers (kind 10063)
 - **DM Relay Support**: Set up private messaging relays (kind 10050)
 - **Community Templates**: Pre-configured templates for popular communities
-- **Blast Relays**: Events are published to both user-defined relays and a configurable blast relay set for redundancy. This makes sure that everyone get to know the new relays the user is leveraging
+- **Blast Relays**: Signed events are published to a configured blast relay set and only positive NIP-01 `OK` acknowledgements count as accepted
 - **Browser Extension Support**: Works with Alby, Nos2x, and other NIP-07 extensions
 
 ## How It Works
@@ -33,9 +33,9 @@ When new users join Nostr, one of the biggest friction points is choosing and co
 
 1. Click the shared template link
 2. Connect your Nostr extension
-3. Review the relay configuration
-4. Click "Apply Template"
-5. Events are published to all configured relays and blast relays
+3. Review normalized endpoints, permissions, event kinds, every configured blast destination, and every template relay destination
+4. Choose Apply and approve each signer prompt
+5. Inspect complete, partial, failed, or cancelled destination results; retry only failures when offered
 
 ## Technology Stack
 
@@ -86,19 +86,20 @@ build commands do not read certificate files.
 
 ### Blast Relays
 
-Blast relays are used to ensure events are published to reliable relays regardless of the user's configuration. Configure them in `src/hooks/useNostr.js`:
+Blast relays are application-controlled publication destinations. Configure the single canonical inventory in `src/utils/templates.js`; the apply preview enumerates that whole inventory separately from the shared template's main relay destinations:
 
 ```javascript
-const BLAST_RELAYS = [
-  'wss://relay.primal.net',
-  'wss://relay.damus.io',
-  'wss://relay.ditto.pub',
-  'wss://offchain.pub',
-  'wss://sendit.nosflare.com',
-  'wss://nostr.mom',
-  'wss://nos.lol'
-];
+export const BLAST_RELAYS = freezeArray([
+  'wss://relay.primal.net', 'wss://relay.damus.io',
+  'wss://relay.ditto.pub', 'wss://offchain.pub',
+  'wss://sendit.nosflare.com', 'wss://nostr.mom',
+  'wss://nos.lol', 'wss://purplepag.es',
+  'wss://indexer.coracle.social', 'wss://user.kindpag.es',
+  'wss://directory.yabu.me', 'wss://profiles.nostr1.com'
+].map((url) => ({ url: canonicalizeEndpoint(url, 'relay') })));
 ```
+
+Publication uses the union of those configured blast destinations and the canonical template's main relays. A destination shown in both groups is contacted once, and one apply operation opens at most four WebSocket connections across all event kinds combined.
 
 ### Community Templates
 
@@ -225,6 +226,12 @@ These are Nostr event-kind identifiers, not TCP ports or NIP numbers.
 The app works with any NIP-07 compatible Nostr extension:
 - [Alby](https://getalby.com/)
 - [Nos2x](https://nos2x.fiatjaf.com/)
+
+## Security and consent
+
+Shared links are untrusted recommendations. The app accepts only bounded, versioned canonical template links and shows normalized endpoints, read/write permissions, the exact event kinds, every configured blast destination, and every canonical template relay destination before any signer interaction. **Connect** requests an identity; **Apply** separately asks the extension to sign kind 10002, and kinds 10063/10050 only when present. Signed events are sent to the deduplicated union of the two displayed destination groups, with at most four sockets across the operation; a relay counts only after a positive NIP-01 `OK`, so results can be complete, partial, failed, or cancelled. Public relay contact has privacy implications: operators can observe your network address and the event you publish.
+
+See [SECURITY.md](SECURITY.md) for the hosting header contract, residual GitHub Pages limitations, disclosure process, and release checklist.
 
 ## Contributing
 

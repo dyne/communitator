@@ -198,6 +198,20 @@ describe('signer and relay contracts', () => {
     expect(outcome.status).toBe('complete'); expect(signer.signEvent).toHaveBeenCalledTimes(1);
   });
 
+  it('revokes retained retry authority when the reviewed operation is cancelled', async () => {
+    class RejectingSocket extends RelayWebSocket { send(payload) { const [, event] = JSON.parse(payload); queueMicrotask(() => this.onmessage?.({ data: JSON.stringify(['OK', event.id, false, 'temporary denial']) })); } }
+    const secret = generateSecretKey(); const pubkey = getPublicKey(secret);
+    const signer = { getPublicKey: vi.fn().mockResolvedValue(pubkey), signEvent: vi.fn((event) => finalizeEvent(event, secret)) };
+    vi.stubGlobal('nostr', signer); vi.stubGlobal('WebSocket', RejectingSocket);
+    const { result } = renderHook(() => useNostr()); await act(() => result.current.connect());
+    let outcome; await act(async () => { outcome = await result.current.applyTemplate(template); });
+    expect(outcome.retry).toEqual(expect.any(Function));
+
+    act(() => result.current.cancelOperation());
+    await expect(outcome.retry()).rejects.toThrow('Retry is no longer valid.');
+    expect(signer.signEvent).toHaveBeenCalledTimes(1);
+  });
+
   it('merges retained successes so a two-kind retry can recover to complete', async () => {
     class SplitSocket extends RelayWebSocket { static retrying = false; send(payload) { const [, event] = JSON.parse(payload); const accepted = SplitSocket.retrying || event.kind === 10002; queueMicrotask(() => this.onmessage?.({ data: JSON.stringify(['OK', event.id, accepted, 'temporary denial']) })); } }
     const secret = generateSecretKey(); const pubkey = getPublicKey(secret);

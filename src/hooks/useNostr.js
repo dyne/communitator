@@ -80,7 +80,7 @@ const summarize = (events) => {
 
 export const useNostr = () => {
   const [pubkey, setPubkey] = useState(null); const [error, setError] = useState(null); const [isConnecting, setIsConnecting] = useState(false);
-  const activeOperation = useRef(null); const sessionVersion = useRef(0); const mounted = useRef(true);
+  const activeOperation = useRef(null); const sessionVersion = useRef(0); const operationVersion = useRef(0); const mounted = useRef(true);
   useEffect(() => { mounted.current = true; return () => { mounted.current = false; activeOperation.current?.abort(); }; }, []);
   const connect = useCallback(async () => {
     setIsConnecting(true); setError(null);
@@ -88,9 +88,10 @@ export const useNostr = () => {
     catch { if (mounted.current) setError('Unable to connect the signer.'); throw new Error('Unable to connect the signer.'); }
     finally { if (mounted.current) setIsConnecting(false); }
   }, []);
-  const disconnect = useCallback(() => { sessionVersion.current += 1; activeOperation.current?.abort(); setPubkey(null); setError(null); }, []);
+  const cancelOperation = useCallback(() => { operationVersion.current += 1; activeOperation.current?.abort(); }, []);
+  const disconnect = useCallback(() => { sessionVersion.current += 1; cancelOperation(); setPubkey(null); setError(null); }, [cancelOperation]);
   const applyTemplate = useCallback(async (input) => {
-    const adapter = globalThis.nostr; const identity = publicKey(pubkey); const version = sessionVersion.current;
+    const adapter = globalThis.nostr; const identity = publicKey(pubkey); const version = sessionVersion.current; const operation = operationVersion.current;
     if (!identity || !adapter || typeof adapter.signEvent !== 'function') throw new Error('Please connect your Nostr signer first.');
     const controller = new AbortController(); activeOperation.current?.abort(); activeOperation.current = controller;
     const template = canonicalizeTemplate(input); const createdAt = Math.floor(Date.now() / 1000);
@@ -98,7 +99,7 @@ export const useNostr = () => {
     const signing = unsigned.map((event) => ({ event, signer: signerState('not-requested'), results: [] }));
     for (let index = 0; index < unsigned.length; index += 1) {
       const event = unsigned[index];
-      if (controller.signal.aborted || globalThis.nostr !== adapter || sessionVersion.current !== version) {
+      if (controller.signal.aborted || globalThis.nostr !== adapter || sessionVersion.current !== version || operationVersion.current !== operation) {
         for (let remaining = index; remaining < signing.length; remaining += 1) signing[remaining] = { ...signing[remaining], signer: signerState('cancelled') };
         if (activeOperation.current === controller) activeOperation.current = null;
         return Object.freeze(summarize(signing));
@@ -106,21 +107,21 @@ export const useNostr = () => {
       try {
         const signingCopy = { ...event, tags: event.tags.map((tag) => [...tag]) };
         const nextSigned = await abortableSignature(adapter.signEvent(signingCopy), controller.signal);
-        if (controller.signal.aborted || globalThis.nostr !== adapter || sessionVersion.current !== version) {
+        if (controller.signal.aborted || globalThis.nostr !== adapter || sessionVersion.current !== version || operationVersion.current !== operation) {
           for (let remaining = index; remaining < signing.length; remaining += 1) signing[remaining] = { ...signing[remaining], signer: signerState('cancelled') };
           if (activeOperation.current === controller) activeOperation.current = null;
           return Object.freeze(summarize(signing));
         }
         signing[index] = { event: verifySignedEvent(event, nextSigned, identity), signer: signedState, results: [] };
       } catch {
-        const cancelled = controller.signal.aborted || globalThis.nostr !== adapter || sessionVersion.current !== version;
+        const cancelled = controller.signal.aborted || globalThis.nostr !== adapter || sessionVersion.current !== version || operationVersion.current !== operation;
         signing[index] = { ...signing[index], signer: signerState(cancelled ? 'cancelled' : 'rejected', cancelled ? undefined : signerMessage) };
         for (let remaining = index + 1; remaining < signing.length; remaining += 1) signing[remaining] = { ...signing[remaining], signer: signerState(cancelled ? 'cancelled' : 'not-requested') };
         if (activeOperation.current === controller) activeOperation.current = null;
         return Object.freeze(summarize(signing));
       }
     }
-    if (controller.signal.aborted || globalThis.nostr !== adapter || sessionVersion.current !== version) {
+    if (controller.signal.aborted || globalThis.nostr !== adapter || sessionVersion.current !== version || operationVersion.current !== operation) {
       const cancelled = signing.map((entry) => ({ ...entry, signer: signerState('cancelled') }));
       if (activeOperation.current === controller) activeOperation.current = null;
       return Object.freeze(summarize(cancelled));
@@ -131,7 +132,7 @@ export const useNostr = () => {
       const summary = summarize(currentEvents);
       if (summary.status === 'complete' || summary.status === 'cancelled') return Object.freeze(summary);
       const retry = async () => {
-        if (globalThis.nostr !== adapter || sessionVersion.current !== version || !Object.isFrozen(template) || !Object.isFrozen(destinations) || currentEvents.some(({ event }) => !Object.isFrozen(event))) throw new Error('Retry is no longer valid.');
+        if (globalThis.nostr !== adapter || sessionVersion.current !== version || operationVersion.current !== operation || !Object.isFrozen(template) || !Object.isFrozen(destinations) || currentEvents.some(({ event }) => !Object.isFrozen(event))) throw new Error('Retry is no longer valid.');
         const retryController = new AbortController(); activeOperation.current?.abort(); activeOperation.current = retryController;
         try {
           const publishRelay = createRelayQueue({ signal: retryController.signal });
@@ -150,6 +151,6 @@ export const useNostr = () => {
     try { return makeResult(await publishEvents(controller.signal)); }
     finally { if (activeOperation.current === controller) activeOperation.current = null; }
   }, [pubkey]);
-  return { pubkey, isConnected: Boolean(pubkey), error, isConnecting, connect, disconnect, applyTemplate, publishToRelays: (event, urls) => publishRelaySet(event, urls).then((results) => results.map(({ url, status, error: relayError }) => ({ url, success: status === 'accepted', ...(relayError ? { error: relayError } : {}) }))) };
+  return { pubkey, isConnected: Boolean(pubkey), error, isConnecting, connect, disconnect, cancelOperation, applyTemplate, publishToRelays: (event, urls) => publishRelaySet(event, urls).then((results) => results.map(({ url, status, error: relayError }) => ({ url, success: status === 'accepted', ...(relayError ? { error: relayError } : {}) }))) };
 };
 export default useNostr;

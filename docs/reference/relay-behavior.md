@@ -7,29 +7,31 @@ description: Validation, publish destinations, timeouts, and result handling.
 
 ## Endpoint validation
 
-Main and DM relay URLs must use `wss://` or `ws://`. Blossom server URLs must use `https://` or `http://`. Production communities should prefer the secure variants.
+Main and DM relay URLs use secure `wss://` endpoints. Blossom server URLs use `https://`. The canonical template boundary rejects insecure non-loopback endpoints.
 
 Templates need a non-empty name and at least one main relay. Communitator validates the decoded template again before showing an apply screen.
 
 ## Publish destinations
 
-The publishing hook merges two lists and removes duplicates:
+Before consent, the apply preview enumerates these two lists separately. The publisher merges them and removes canonical duplicates:
 
-1. the application’s configured blast relays;
-2. the main relay URLs carried by the member’s template.
+1. the application’s configured blast relays.
+2. the shared template’s canonical main relays.
+
+The current configured blast inventory is `relay.primal.net`, `relay.damus.io`, `relay.ditto.pub`, `offchain.pub`, `sendit.nosflare.com`, `nostr.mom`, `nos.lol`, `purplepag.es`, `indexer.coracle.social`, `user.kindpag.es`, `directory.yabu.me`, and `profiles.nostr1.com`, all over `wss://`. The UI displays their full canonical URLs. A relay present in both lists is contacted once.
 
 This means the Blossom and DM events are announced through Nostr relays; Communitator does not upload media to Blossom servers or send direct messages as part of applying a template.
 
 ## Timeouts and acknowledgements
 
-For each relay, the application:
+One apply or retry operation shares a single queue across all requested event kinds, so no more than four WebSockets are open at once. For each relay/event pair, the application:
 
 1. opens a WebSocket;
 2. sends `["EVENT", signedEvent]`;
 3. waits for an `OK` response that matches the event ID;
 4. closes the socket after success or timeout.
 
-An open timeout and a publish timeout are reported as failures for that destination. Results are aggregated per event kind, with blast and user-relay counts shown separately.
+An open timeout and a publish timeout are reported as failures for that destination. Only a positive NIP-01 `OK` acknowledgement counts as accepted; results are aggregated per event kind.
 
 ## Failure model
 

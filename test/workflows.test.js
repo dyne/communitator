@@ -31,6 +31,8 @@ describe('workflow supply-chain policy', () => {
     expect(workflow).toMatch(/package-lock\.json/);
     expect(workflow).toMatch(/npm audit --audit-level=high/);
     expect(workflow).toMatch(/src\/\*\*/);
+    expect(workflow.match(/index\.html/g)).toHaveLength(2);
+    expect(workflow.match(/SECURITY\.md/g)).toHaveLength(2);
     expect(workflow).toMatch(/vite\.config\.js/);
     expect(workflow).toMatch(/contents:\s*read/);
   });

@@ -5,6 +5,10 @@ on:
     paths:
       - 'src/**'
       - 'test/**'
+      - 'e2e/**'
+      - 'index.html'
+      - 'SECURITY.md'
+      - 'playwright.config.js'
       - 'package.json'
       - 'package-lock.json'
       - 'vite.config.js'
@@ -18,6 +22,10 @@ on:
     paths:
       - 'src/**'
       - 'test/**'
+      - 'e2e/**'
+      - 'index.html'
+      - 'SECURITY.md'
+      - 'playwright.config.js'
       - 'package.json'
       - 'package-lock.json'
       - 'vite.config.js'
@@ -50,6 +58,14 @@ jobs:
 
       - name: Run quality gate
         run: npm run check
+        timeout-minutes: 5
+
+      - name: Install Chromium for browser regressions
+        run: npx playwright install --with-deps chromium
+        timeout-minutes: 8
+
+      - name: Run deterministic browser regressions
+        run: npm run test:e2e
         timeout-minutes: 5
 
       - name: Audit high and critical dependencies
