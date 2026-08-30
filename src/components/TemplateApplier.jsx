@@ -1,4 +1,4 @@
-// @ts-nocheck -- operation-result contracts are runtime checked by the signer session.
+// @ts-check
 import { useEffect, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import useNostr from '../hooks/useNostr';
@@ -7,11 +7,13 @@ import NostrConnect from './NostrConnect';
 import PublishResults from './PublishResults';
 import TemplatePreview from './TemplatePreview';
 
+/** @typedef {import('../types/operation-result').OperationResult} OperationResult */
+
 /** The sole UI orchestrator: it asks the session to perform an explicit user-approved apply operation. */
 const TemplateApplier = (props) => {
   void props;
   const { encoded } = useParams(); const nostr = useNostr(); const { template, error: decodeError } = useDecodedTemplate(encoded);
-  const [applying, setApplying] = useState(false); const [error, setError] = useState(''); const [results, setResults] = useState(null); const errorRef = useRef(null); const routeVersion = useRef(0);
+  const [applying, setApplying] = useState(false); const [error, setError] = useState(''); const [results, setResults] = useState(/** @type {OperationResult|null} */ (null)); const errorRef = useRef(/** @type {HTMLDivElement|null} */ (null)); const routeVersion = useRef(0);
   useEffect(() => {
     routeVersion.current += 1;
     nostr.cancelOperation();
@@ -29,7 +31,7 @@ const TemplateApplier = (props) => {
     {connected && !results && <section className="apply-controls" aria-labelledby="apply-title"><h3>2. Approve the reviewed events</h3><p className="helper-text">Your signer will show each event for approval. Communitator only publishes after signed events return.</p><button type="button" onClick={apply} className="btn-primary apply-button" disabled={applying}>{applying ? 'Publishing reviewed events…' : 'Apply template and publish reviewed events'}</button></section>}
     {(applying || nostr.isConnecting) && <p className="inline-status" role="status">{nostr.isConnecting ? 'Connecting signer…' : 'Signing and publishing…'}</p>}
     {applying && <button type="button" onClick={cancel} className="btn-secondary">Cancel application</button>}
-    {error && <div ref={errorRef} tabIndex="-1" className="error-box" role="alert">{error}</div>}
+    {error && <div ref={errorRef} tabIndex={-1} className="error-box" role="alert">{error}</div>}
     {results?.events && <PublishResults results={results} applying={applying} onRetry={retry} onReset={() => { setResults(null); setError(''); }} />}
   </section>;
 };

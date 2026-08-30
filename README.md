@@ -127,25 +127,9 @@ export const getCommunityTemplates = () => {
 };
 ```
 
-### Default Relays
+### Creator defaults
 
-Change the landing defaults in `src/components/TemplateCreator.jsx`:
-
-```javascript
-  const [relays, setRelays] = useState([
-    { url: 'wss://your-cool.relay', read: true, write: true }
-  ]);
-
-  const [blossomServers, setBlossomServers] = useState([
-    { url: 'https://your-blossom.server' }
-  ]);
-  const [showBlossom, setShowBlossom] = useState(true);
-
-  const [dmRelays, setDmRelays] = useState([
-    { url: 'wss://your-dm.relay' }
-  ]);
-  const [showDmRelays, setShowDmRelays] = useState(true);
-```
+The creator draft defaults and its immutable reducer live in `src/components/templateCreatorState.js`. Keep default rows within `TEMPLATE_LIMITS` in `src/utils/templates.js`; the reducer and accessible Add controls enforce those same limits before canonical validation on submit.
 
 ## Deployment
 
@@ -199,9 +183,10 @@ server {
     }
     
     # Security headers
-    add_header X-Frame-Options "SAMEORIGIN" always;
+    add_header Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self' wss:; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'" always;
     add_header X-Content-Type-Options "nosniff" always;
-    add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+    add_header Referrer-Policy "no-referrer" always;
+    add_header Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=(), usb=()" always;
 }
 ```
 
@@ -211,9 +196,9 @@ These are Nostr event-kind identifiers, not TCP ports or NIP numbers.
 
 | Nostr event kind | Description | Defined by | Published To |
 |------|-------------|------------|--------------|
-| [10002](https://github.com/nostr-protocol/nips/blob/master/65.md) | User's main relays | [NIP-65](https://github.com/nostr-protocol/nips/blob/master/65.md) | Blast relays + User's relays |
-| [10063](https://github.com/nostr-protocol/nips/blob/master/B7.md) | Blossom servers | [NIP-B7](https://github.com/nostr-protocol/nips/blob/master/B7.md) | Blast relays + User's relays |
-| [10050](https://github.com/nostr-protocol/nips/blob/master/17.md) | DM relays | [NIP-17](https://github.com/nostr-protocol/nips/blob/master/17.md) | Blast relays + User's relays |
+| [10002](https://github.com/nostr-protocol/nips/blob/master/65.md) | User's main relays | [NIP-65](https://github.com/nostr-protocol/nips/blob/master/65.md) | Deduplicated union of configured blast and reviewed template relays |
+| [10063](https://github.com/nostr-protocol/nips/blob/master/B7.md) | Blossom servers | [NIP-B7](https://github.com/nostr-protocol/nips/blob/master/B7.md) | Deduplicated union of configured blast and reviewed template relays |
+| [10050](https://github.com/nostr-protocol/nips/blob/master/17.md) | DM relays | [NIP-17](https://github.com/nostr-protocol/nips/blob/master/17.md) | Deduplicated union of configured blast and reviewed template relays |
 
 ## Requirements
 

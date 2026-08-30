@@ -21,6 +21,7 @@ vi.mock('../src/hooks/useNostr.js', () => ({
 
 import TemplateApplier from '../src/components/TemplateApplier.jsx';
 import TemplateCreator from '../src/components/TemplateCreator.jsx';
+import PublishResults from '../src/components/PublishResults.jsx';
 
 afterEach(() => cleanup());
 
@@ -123,5 +124,17 @@ describe('create-review-apply path', () => {
       relays: [{ url: 'wss://relay.example/', read: true, write: true }],
     }));
     expect(await screen.findByText(/template applied successfully/i)).toBeInTheDocument();
+  });
+
+  it('renders failed destination provenance and explanations as text', () => {
+    render(<PublishResults applying={false} onRetry={vi.fn()} onReset={vi.fn()} results={{ status: 'partial', events: [{ event: { kind: 10002 }, signer: { status: 'signed' }, results: [
+      { url: 'wss://blast.example/', blast: true, template: false, status: 'rejected', error: '<b>blast denial</b>' },
+      { url: 'wss://template.example/', blast: false, template: true, status: 'timeout', error: 'Relay timed out.' },
+      { url: 'wss://both.example/', blast: true, template: true, status: 'network-error', error: 'Relay connection failed.' },
+    ] }] }} />);
+    expect(screen.getAllByText(/configured blast/)).toHaveLength(2);
+    expect(screen.getAllByText(/reviewed template/)).toHaveLength(2);
+    expect(screen.getByText('wss://blast.example/').closest('li')).toHaveTextContent('<b>blast denial</b>');
+    expect(document.querySelector('b')).toBeNull();
   });
 });

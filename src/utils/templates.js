@@ -133,9 +133,16 @@ export const templateToKind10002Tags = (template) => buildKind10002(template, 0)
 export const BLAST_RELAYS = freezeArray(['wss://relay.primal.net', 'wss://relay.damus.io', 'wss://relay.ditto.pub', 'wss://offchain.pub', 'wss://sendit.nosflare.com', 'wss://nostr.mom', 'wss://nos.lol', 'wss://purplepag.es', 'wss://indexer.coracle.social', 'wss://user.kindpag.es', 'wss://directory.yabu.me', 'wss://profiles.nostr1.com'].map((url) => ({ url: canonicalizeEndpoint(url, 'relay') })));
 export const publicationDestinations = (template) => {
   const canonical = canonicalizeTemplate(template);
-  const uniqueUrls = [...new Set([...BLAST_RELAYS.map(({ url }) => url), ...canonical.relays.map(({ url }) => url)])];
-  if (uniqueUrls.length > TEMPLATE_LIMITS.destinations) fail('too_many_destinations');
-  return freeze(uniqueUrls);
+  const destinations = new Map();
+  const add = (url, source) => {
+    const current = destinations.get(url) ?? { url, blast: false, template: false };
+    current[source] = true;
+    destinations.set(url, current);
+  };
+  BLAST_RELAYS.forEach(({ url }) => add(url, 'blast'));
+  canonical.relays.forEach(({ url }) => add(url, 'template'));
+  if (destinations.size > TEMPLATE_LIMITS.destinations) fail('too_many_destinations');
+  return freeze([...destinations.values()].map(({ url, blast, template: templateSource }) => freeze({ url, blast, template: templateSource })));
 };
 export const addRelayToTemplate = (template, relay) => canonicalizeTemplate({ ...template, relays: [...template.relays, relay] });
 export const removeRelayFromTemplate = (template, relayUrl) => canonicalizeTemplate({ ...template, relays: template.relays.filter((relay) => relay.url !== relayUrl) });

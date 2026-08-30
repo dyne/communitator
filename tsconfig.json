@@ -13,6 +13,6 @@
     "noImplicitAny": false,
     "useUnknownInCatchVariables": false
   },
-  "include": ["src/utils/templates.js", "src/hooks/useNostr.js", "vite.config.js", "test", "src/types/**/*.d.ts"],
+  "include": ["src/utils/templates.js", "src/hooks/useNostr.js", "src/components/TemplateApplier.jsx", "vite.config.js", "test", "src/types/**/*.d.ts"],
   "exclude": ["src/utils/nostr.js"]
 }

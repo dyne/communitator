@@ -9,8 +9,8 @@ The interactive application remains a React and Vite project at the repository r
 
 ## Application prerequisites
 
-- Node.js 18 or newer
-- npm
+- Node.js 24.19.0 (the pinned supported release)
+- npm 11
 - a NIP-07-compatible browser extension for signer testing
 - HTTPS when exercising extension behavior
 
@@ -19,7 +19,7 @@ The interactive application remains a React and Vite project at the repository r
 From the repository root:
 
 ```sh
-npm install
+npm ci
 npm run dev
 ```
 

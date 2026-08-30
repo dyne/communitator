@@ -28,11 +28,11 @@ export const validateCreatorDraft = (state) => {
 };
 
 /** @param {{ title: string, group: string, items: any[], shown: boolean, onToggle?: () => void, onAdd: () => void, onUpdate: (...args: any[]) => void, onRemove: (...args: any[]) => void, onTouched: (id: string) => void, errors: Map<string, string>, relay?: boolean }} props */
-const CreatorGroup = ({ title, group, items, shown, onToggle, onAdd, onUpdate, onRemove, onTouched, errors, relay }) => { const contentId = `${group}-endpoint-fields`; return <fieldset className="form-group endpoint-group">
+const CreatorGroup = ({ title, group, items, shown, onToggle, onAdd, onUpdate, onRemove, onTouched, errors, relay }) => { const contentId = `${group}-endpoint-fields`; const limit = group === 'relay' ? TEMPLATE_LIMITS.relays : group === 'blossom' ? TEMPLATE_LIMITS.blossomServers : TEMPLATE_LIMITS.dmRelays; const atLimit = items.length >= limit; return <fieldset className="form-group endpoint-group">
   <legend>{title}</legend>{onToggle && <button type="button" className="btn-secondary toggle-btn" onClick={onToggle} aria-expanded={shown} aria-controls={contentId}>{shown ? `Hide ${title}` : `Show ${title}`}</button>}
   {shown && <div id={contentId}><p className="helper-text">{relay ? 'Choose the read and write permission for every relay.' : 'Endpoints are validated and normalized when you generate the shared link.'}</p>
     {relay ? <RelayList relays={items} onUpdate={onUpdate} onRemove={onRemove} onTouched={onTouched} errors={errors} /> : items.map((item, index) => <EndpointEditor key={item.id} endpoint={item} group={group} index={index} removable={items.length > 1} onUpdate={onUpdate} onRemove={onRemove} onTouched={onTouched} error={errors.get(item.id)} />)}
-    <button type="button" className="btn-secondary add-btn" onClick={onAdd}>Add {group} endpoint</button></div>}
+    <p id={`${group}-limit`} className="helper-text">{items.length} of {limit} endpoints configured.{atLimit ? ' Maximum reached.' : ''}</p><button type="button" className="btn-secondary add-btn" onClick={onAdd} disabled={atLimit} aria-describedby={`${group}-limit`}>Add {group} endpoint</button></div>}
 </fieldset>; };
 
 const TemplateCreator = () => {
