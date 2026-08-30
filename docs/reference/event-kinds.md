@@ -43,12 +43,11 @@ The event is published after explicit user approval to the deduplicated union of
 
 ## Shared event fields
 
-Every prepared event includes:
+Every unsigned signer input includes:
 
 - the numeric `kind`;
-- the connected public key;
 - the current Unix timestamp;
 - the generated tags;
 - an empty content string.
 
-The browser extension returns the signed event. Communitator then sends the standard `EVENT` message over WebSocket to each publish destination and waits for an `OK` response or a timeout.
+Signer identity is intentionally absent from that reviewed input. The browser extension returns a signed event containing its public key, ID, and signature; Communitator verifies those fields and the exact reviewed payload before it sends the standard `EVENT` message to any destination.

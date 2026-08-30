@@ -1,19 +1,9 @@
-interface Window {
-  nostr?: {
-    getPublicKey: () => Promise<string>;
-    signEvent: (event: {
-      kind: number;
-      created_at: number;
-      tags: string[][];
-      content: string;
-    }) => Promise<{
-      id: string;
-      sig: string;
-      kind: number;
-      pubkey: string;
-      created_at: number;
-      tags: string[][];
-      content: string;
-    }>;
-  };
+export {};
+
+declare global {
+  var nostr: import('./operation-result').SignerAdapter | undefined;
+
+  interface Window {
+    nostr?: import('./operation-result').SignerAdapter;
+  }
 }

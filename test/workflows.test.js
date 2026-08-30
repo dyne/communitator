@@ -34,6 +34,7 @@ describe('workflow supply-chain policy', () => {
     expect(workflow.match(/index\.html/g)).toHaveLength(2);
     expect(workflow.match(/SECURITY\.md/g)).toHaveLength(2);
     expect(workflow).toMatch(/vite\.config\.js/);
+    expect(workflow.match(/tsconfig\.contracts\.json/g)).toHaveLength(2);
     expect(workflow).toMatch(/contents:\s*read/);
   });
 

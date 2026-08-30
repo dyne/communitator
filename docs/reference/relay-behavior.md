@@ -31,7 +31,7 @@ One apply or retry operation shares a single queue across all requested event ki
 3. waits for an `OK` response that matches the event ID;
 4. closes the socket after success or timeout.
 
-An open timeout and a publish timeout are reported as failures for that destination. Only a positive NIP-01 `OK` acknowledgement counts as accepted; results are aggregated per event kind.
+Each relay/event pair has one 10-second total deadline covering connection, send, and acknowledgement. Only a positive NIP-01 `OK` acknowledgement counts as accepted; results are aggregated per event kind.
 
 ## Failure model
 

@@ -1,6 +1,7 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test } from '@playwright/test';
 import { finalizeEvent, getPublicKey } from 'nostr-tools';
+import { TEMPLATE_LIMITS } from '../src/utils/templates.js';
 
 const encodeTemplate = (template) => Buffer.from(JSON.stringify({ v: 1, ...template })).toString('base64url');
 const validTemplate = encodeTemplate({
@@ -71,6 +72,67 @@ test('malformed, oversized, and extension-missing paths never sign or publish', 
   await page.getByRole('button', { name: 'Connect with extension' }).click();
   await expect(page.getByText('Unable to connect the signer.')).toBeVisible();
   expect(externalRequests).toEqual([]);
+});
+
+test('enforced CSP blocks disallowed resource classes while permitting a mocked configured WSS relay', async ({ page }) => {
+  let allowedWssRoutes = 0;
+  await page.routeWebSocket('wss://relay.primal.net/**', (route) => {
+    allowedWssRoutes += 1;
+    route.onMessage(() => {});
+  });
+  await page.goto('/#/');
+
+  const evidence = await page.evaluate(async () => {
+    const violations = [];
+    let resolveViolations;
+    const allViolations = new Promise((resolve) => { resolveViolations = resolve; });
+    const handler = (event) => {
+      violations.push({ blockedURI: event.blockedURI, directive: event.effectiveDirective });
+      if (violations.length === 4) resolveViolations();
+    };
+    document.addEventListener('securitypolicyviolation', handler);
+
+    const fetchBlocked = fetch('http://blocked.invalid/csp-fetch').catch(() => {});
+    const imageBlocked = new Promise((resolve) => {
+      const image = new Image();
+      image.onload = image.onerror = () => { image.remove(); resolve(); };
+      image.src = 'http://blocked.invalid/csp-image';
+      document.body.append(image);
+    });
+    const scriptBlocked = new Promise((resolve) => {
+      const script = document.createElement('script');
+      script.onload = script.onerror = () => { script.remove(); resolve(); };
+      script.src = 'http://blocked.invalid/csp-script.js';
+      document.body.append(script);
+    });
+    const websocketBlocked = new Promise((resolve) => {
+      try {
+        const socket = new WebSocket('ws://blocked.invalid/csp-websocket');
+        socket.onopen = socket.onerror = socket.onclose = () => resolve();
+      } catch {
+        resolve();
+      }
+    });
+
+    await Promise.all([fetchBlocked, imageBlocked, scriptBlocked, websocketBlocked, allViolations]);
+    document.removeEventListener('securitypolicyviolation', handler);
+    const allowedSocket = await new Promise((resolve, reject) => {
+      const socket = new WebSocket('wss://relay.primal.net/csp-allowed');
+      socket.onopen = () => resolve(socket);
+      socket.onerror = () => reject(new Error('Configured WSS relay was blocked.'));
+    });
+    allowedSocket.close();
+    return violations;
+  });
+
+  expect(evidence).toEqual(expect.arrayContaining([
+    { blockedURI: 'http://blocked.invalid/csp-fetch', directive: 'connect-src' },
+    { blockedURI: 'http://blocked.invalid/csp-image', directive: 'img-src' },
+    { blockedURI: 'http://blocked.invalid/csp-script.js', directive: 'script-src-elem' },
+    { blockedURI: 'ws://blocked.invalid/csp-websocket', directive: 'connect-src' },
+  ]));
+  expect(evidence).toHaveLength(4);
+  expect(allowedWssRoutes).toBe(1);
 });
 
 test('explicit consent signs all kinds and publishes through the real operation with four sockets maximum', async ({ page }) => {
@@ -233,18 +295,24 @@ test('creator validation and endpoint controls work from the keyboard', async ({
   expect(externalRequests).toEqual([]);
 });
 
-test('keyboard creator limit disables add and permits removal then re-add', async ({ page }) => {
-  await page.goto('/#/');
-  const add = page.getByRole('button', { name: 'Add relay endpoint' });
-  for (let index = 2; index <= 16; index += 1) { await add.focus(); await add.press('Enter'); }
-  await expect(page.getByLabel('relay endpoint 16', { exact: true })).toBeVisible();
-  await expect(add).toBeDisabled();
-  await expect(add).toHaveAccessibleDescription('16 of 16 endpoints configured. Maximum reached.');
-  const remove = page.getByRole('button', { name: 'Remove relay endpoint 16' }); await remove.focus(); await remove.press('Enter');
-  await expect(add).toBeEnabled(); await add.focus(); await add.press('Enter');
-  await expect(page.getByLabel('relay endpoint 16', { exact: true })).toBeVisible();
-  expect(externalRequests).toEqual([]);
-});
+for (const { group, limit, key } of [
+  { group: 'relay', limit: TEMPLATE_LIMITS.relays, key: 'Enter' },
+  { group: 'blossom', limit: TEMPLATE_LIMITS.blossomServers, key: 'Space' },
+  { group: 'dm', limit: TEMPLATE_LIMITS.dmRelays, key: 'Enter' },
+]) {
+  test(`keyboard ${group} creator limit announces and enforces the canonical maximum`, async ({ page }) => {
+    await page.goto('/#/');
+    const add = page.getByRole('button', { name: `Add ${group} endpoint` });
+    for (let index = 2; index <= limit; index += 1) { await add.focus(); await add.press(key); }
+    await expect(page.getByLabel(`${group} endpoint ${limit}`, { exact: true })).toBeVisible();
+    await expect(add).toBeDisabled();
+    await expect(add).toHaveAccessibleDescription(`${limit} of ${limit} endpoints configured. Maximum reached.`);
+    const remove = page.getByRole('button', { name: `Remove ${group} endpoint ${limit}` }); await remove.focus(); await remove.press('Enter');
+    await expect(add).toBeEnabled(); await add.focus(); await add.press(key);
+    await expect(page.getByLabel(`${group} endpoint ${limit}`, { exact: true })).toBeVisible();
+    expect(externalRequests).toEqual([]);
+  });
+}
 
 test('review and consent surface has no serious or critical accessibility violations', async ({ browser }) => {
   const violations = [];

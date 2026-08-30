@@ -10,8 +10,7 @@ import TemplatePreview from './TemplatePreview';
 /** @typedef {import('../types/operation-result').OperationResult} OperationResult */
 
 /** The sole UI orchestrator: it asks the session to perform an explicit user-approved apply operation. */
-const TemplateApplier = (props) => {
-  void props;
+const TemplateApplier = () => {
   const { encoded } = useParams(); const nostr = useNostr(); const { template, error: decodeError } = useDecodedTemplate(encoded);
   const [applying, setApplying] = useState(false); const [error, setError] = useState(''); const [results, setResults] = useState(/** @type {OperationResult|null} */ (null)); const errorRef = useRef(/** @type {HTMLDivElement|null} */ (null)); const routeVersion = useRef(0);
   useEffect(() => {
@@ -19,6 +18,7 @@ const TemplateApplier = (props) => {
     nostr.cancelOperation();
     setApplying(false); setResults(null); setError('');
   }, [encoded, nostr.cancelOperation]);
+  /** @param {string} message */
   const fail = (message) => { setError(message); requestAnimationFrame(() => errorRef.current?.focus()); };
   const apply = async () => { if (!template || !nostr.pubkey) return fail('Connect a signer before you apply this template.'); const currentRoute = routeVersion.current; setApplying(true); setError(''); try { const nextResults = await nostr.applyTemplate(template); if (routeVersion.current === currentRoute) setResults(nextResults); } catch { if (routeVersion.current === currentRoute) fail('Unable to apply this template. Review the signer and destinations, then try again.'); } finally { if (routeVersion.current === currentRoute) setApplying(false); } };
   const retry = async () => { if (!results?.retry) return; const currentRoute = routeVersion.current; setApplying(true); setError(''); try { const nextResults = await results.retry(); if (routeVersion.current === currentRoute) setResults(nextResults); } catch { if (routeVersion.current === currentRoute) fail('Retry is no longer valid. Review and apply the template again.'); } finally { if (routeVersion.current === currentRoute) setApplying(false); } };
