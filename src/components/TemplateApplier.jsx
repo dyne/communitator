@@ -14,32 +14,6 @@ const TemplateApplier = ({ setConnectedPubkey }) => {
   const [applying, setApplying] = useState(false);
   const [results, setResults] = useState(null);
 
-  // ============================================================
-  // CONNECTION CHECK
-  // ============================================================
-  useEffect(() => {
-    const checkConnection = async () => {
-      if (nostr.pubkey) {
-        setConnectedPubkey(nostr.pubkey);
-        return;
-      }
-
-      if (window.nostr?.getPublicKey) {
-        try {
-          const pk = await window.nostr.getPublicKey();
-          if (pk) {
-            await nostr.connect();
-            setConnectedPubkey(pk);
-          }
-        } catch {
-          console.log('Extension not authorized');
-        }
-      }
-    };
-
-    checkConnection();
-  }, []);
-
   useEffect(() => {
     if (nostr.pubkey) {
       setConnectedPubkey(nostr.pubkey);
@@ -79,80 +53,22 @@ const TemplateApplier = ({ setConnectedPubkey }) => {
         throw new Error('Please connect your Nostr signer first');
       }
 
-      const allResults = [];
-      const publishConfigs = [];
-
-      // 1. Publish kind 10002 (relays)
-      if (template.relays && template.relays.length > 0) {
-        publishConfigs.push({
-          name: 'Relays (kind 10002)',
-          kind: '10002',
-          publishFn: () => nostr.publishKind10002(template)
-        });
-      }
-
-      // 2. Publish kind 10063 (blossom servers)
-      if (template.blossomServers && template.blossomServers.length > 0) {
-        publishConfigs.push({
-          name: 'Blossom Servers (kind 10063)',
-          kind: '10063',
-          publishFn: () => nostr.publishKind10063(template)
-        });
-      }
-
-      // 3. Publish kind 10050 (DM relays)
-      if (template.dmRelays && template.dmRelays.length > 0) {
-        publishConfigs.push({
-          name: 'DM Relays (kind 10050)',
-          kind: '10050',
-          publishFn: () => nostr.publishKind10050(template)
-        });
-      }
-
-      if (publishConfigs.length === 0) {
-        throw new Error('No events to publish');
-      }
-
-      // Publish each kind
-      for (const config of publishConfigs) {
-        console.log(`Publishing ${config.name}...`);
-        try {
-          const result = await config.publishFn();
-          
-          const successCount = result.results.filter(r => r.success).length;
-          const blastSuccess = result.blastResults ? result.blastResults.filter(r => r.success).length : 0;
-          const userSuccess = result.userResults ? result.userResults.filter(r => r.success).length : 0;
-          
-          allResults.push({
-            kind: config.kind,
-            name: config.name,
-            success: successCount > 0,
-            eventId: result.event.id,
-            publishedTo: successCount,
-            totalRelays: result.results.length,
-            blastPublished: blastSuccess,
-            blastTotal: result.blastResults ? result.blastResults.length : 0,
-            userPublished: userSuccess,
-            userTotal: result.userResults ? result.userResults.length : 0,
-            details: result.results
-          });
-        } catch {
-          allResults.push({
-            kind: config.kind,
-            name: config.name,
-            success: false,
-            error: 'Publication failed'
-          });
-        }
-      }
-
-      setResults({
-        success: allResults.some(r => r.success),
-        events: allResults
-      });
+      setResults(await nostr.applyTemplate(template));
 
     } catch {
       setError('Unable to apply this template.');
+    } finally {
+      setApplying(false);
+    }
+  };
+
+  const handleRetry = async () => {
+    if (!results?.retry) return;
+    setApplying(true);
+    try {
+      setResults(await results.retry());
+    } catch {
+      setError('Retry is no longer valid. Please review and apply the template again.');
     } finally {
       setApplying(false);
     }
@@ -262,7 +178,7 @@ const TemplateApplier = ({ setConnectedPubkey }) => {
           <p style={{ fontSize: '14px', color: '#666', marginBottom: '12px' }}>
             You need to connect a signer to publish this template.
           </p>
-          <NostrConnect setConnectedPubkey={setConnectedPubkey} />
+          <NostrConnect {...nostr} setConnectedPubkey={setConnectedPubkey} />
         </div>
       )}
 
@@ -319,70 +235,18 @@ const TemplateApplier = ({ setConnectedPubkey }) => {
         </div>
       )}
 
-      {/* RESULTS */}
       {results && results.events && (
         <div className="success-box" style={{ marginTop: '20px' }}>
-          <h3>
-            {results.success ? '✅ Template Applied Successfully!' : '⚠️ Some Events Failed'}
-          </h3>
-          
-          {results.events.map((event, index) => (
-            <div key={index} style={{ 
-              marginTop: '12px', 
-              padding: '16px',
-              background: event.success ? 'rgba(76, 175, 80, 0.1)' : 'rgba(255, 82, 82, 0.1)',
-              borderRadius: '6px',
-              border: event.success ? '1px solid #4caf50' : '1px solid #ff5252'
-            }}>
-              <strong>{event.name}</strong>
-              {event.success ? (
-                <>
-                  <p style={{ marginTop: '4px' }}>
-                    ✅ Published to <strong>{event.publishedTo}</strong> of {event.totalRelays} relays
-                  </p>
-                  
-                  {event.blastTotal > 0 && (
-                    <p style={{ fontSize: '13px', color: '#555' }}>
-                      📡 Blast relays: <strong>{event.blastPublished}/{event.blastTotal}</strong>
-                    </p>
-                  )}
-                  
-                  {event.userTotal > 0 && (
-                    <p style={{ fontSize: '13px', color: '#555' }}>
-                      👤 Your relays: <strong>{event.userPublished}/{event.userTotal}</strong>
-                    </p>
-                  )}
-                  
-                  <p style={{ fontSize: '12px', color: '#555', marginTop: '4px' }}>
-                    Event ID: <code style={{ fontSize: '11px', wordBreak: 'break-all' }}>
-                      {event.eventId}
-                    </code>
-                  </p>
-                  
-                  <details style={{ marginTop: '8px' }}>
-                    <summary style={{ cursor: 'pointer', color: '#2e7d32', fontSize: '13px' }}>
-                      📊 Publication Details ({event.publishedTo} successful)
-                    </summary>
-                    <ul style={{ marginTop: '8px', fontSize: '12px', maxHeight: '200px', overflowY: 'auto' }}>
-                      {event.details.map((result, idx) => (
-                        <li key={idx} style={{ 
-                          padding: '2px 0',
-                          color: result.success ? '#2e7d32' : '#c62828'
-                        }}>
-                          {result.success ? '✅' : '❌'} {result.url}
-                          {result.error && ` - ${result.error}`}
-                        </li>
-                      ))}
-                    </ul>
-                  </details>
-                </>
-              ) : (
-                <p style={{ color: '#c62828', marginTop: '4px' }}>
-                  ❌ Failed: {event.error}
-                </p>
-              )}
-            </div>
-          ))}
+          <h3>{results.status === 'complete' ? '✅ Template Applied Successfully!' : results.status === 'partial' ? '⚠️ Template Partially Applied' : results.status === 'cancelled' ? '⏹️ Template Application Cancelled' : '❌ Template Was Not Applied'}</h3>
+          {results.events.map(({ event, results: relayResults }) => {
+            const accepted = relayResults.filter(({ status }) => status === 'accepted').length;
+            return <div key={event.id} style={{ marginTop: '12px', padding: '16px', borderRadius: '6px', border: accepted ? '1px solid #4caf50' : '1px solid #ff5252' }}>
+              <strong>Kind {event.kind}</strong><p>Published to <strong>{accepted}</strong> of {relayResults.length} relays</p>
+              <ul>{relayResults.filter(({ status }) => status !== 'accepted').map(({ url, status, error: relayError }) => <li key={url}>{url}: {status}{relayError ? ` — ${relayError}` : ''}</li>)}</ul>
+            </div>;
+          })}
+
+          {results.status !== 'complete' && results.status !== 'cancelled' && results.retry && <button onClick={handleRetry} className="btn-secondary" disabled={applying}>Retry failed relays</button>}
 
           <div style={{ marginTop: '16px', display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
             <Link to="/" className="btn-secondary">

@@ -4,13 +4,8 @@ import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { describe, expect, it, vi } from 'vitest';
 import { encodeTemplate } from '../src/utils/templates.js';
 
-const { publishKind10002 } = vi.hoisted(() => ({
-  publishKind10002: vi.fn().mockResolvedValue({
-    event: { id: 'signed-event' },
-    results: [{ url: 'wss://relay.example', success: true }],
-    blastResults: [],
-    userResults: [{ url: 'wss://relay.example', success: true }],
-  }),
+const { applyTemplate } = vi.hoisted(() => ({
+  applyTemplate: vi.fn().mockResolvedValue({ status: 'complete', events: [] }),
 }));
 
 vi.mock('../src/hooks/useNostr.js', () => ({
@@ -18,9 +13,7 @@ vi.mock('../src/hooks/useNostr.js', () => ({
     pubkey: 'a'.repeat(64),
     isConnected: true,
     disconnect: vi.fn(),
-    publishKind10002,
-    publishKind10063: vi.fn(),
-    publishKind10050: vi.fn(),
+    applyTemplate,
   }),
 }));
 
@@ -49,7 +42,7 @@ describe('create-review-apply path', () => {
     expect(screen.getByText('wss://relay.example/')).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: /apply template/i }));
 
-    expect(publishKind10002).toHaveBeenCalledWith(expect.objectContaining({
+    expect(applyTemplate).toHaveBeenCalledWith(expect.objectContaining({
       name: 'Review fixture',
       relays: [{ url: 'wss://relay.example/', read: true, write: true }],
     }));
