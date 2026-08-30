@@ -91,8 +91,9 @@ export const useNostr = () => {
   const cancelOperation = useCallback(() => { operationVersion.current += 1; activeOperation.current?.abort(); }, []);
   const disconnect = useCallback(() => { sessionVersion.current += 1; cancelOperation(); setPubkey(null); setError(null); }, [cancelOperation]);
   const applyTemplate = useCallback(async (input) => {
-    const adapter = globalThis.nostr; const identity = publicKey(pubkey); const version = sessionVersion.current; const operation = operationVersion.current;
+    const adapter = globalThis.nostr; const identity = publicKey(pubkey); const version = sessionVersion.current;
     if (!identity || !adapter || typeof adapter.signEvent !== 'function') throw new Error('Please connect your Nostr signer first.');
+    const operation = operationVersion.current + 1; operationVersion.current = operation;
     const controller = new AbortController(); activeOperation.current?.abort(); activeOperation.current = controller;
     const template = canonicalizeTemplate(input); const createdAt = Math.floor(Date.now() / 1000);
     const unsigned = [[template.relays.length, buildKind10002], [template.blossomServers.length, buildKind10063], [template.dmRelays.length, buildKind10050]].filter(([count]) => count).map(([, build]) => build(template, createdAt));

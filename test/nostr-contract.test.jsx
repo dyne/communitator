@@ -212,6 +212,35 @@ describe('signer and relay contracts', () => {
     expect(signer.signEvent).toHaveBeenCalledTimes(1);
   });
 
+  it('revokes an earlier apply retry when a newer event set is applied', async () => {
+    class NewApplySocket extends RelayWebSocket {
+      static accept = false; static attempts = 0;
+      send(payload) {
+        NewApplySocket.attempts += 1;
+        const [, event] = JSON.parse(payload);
+        queueMicrotask(() => this.onmessage?.({ data: JSON.stringify(['OK', event.id, NewApplySocket.accept, NewApplySocket.accept ? 'accepted' : 'temporary denial']) }));
+      }
+    }
+    const now = vi.spyOn(Date, 'now').mockReturnValue(1_000);
+    const secret = generateSecretKey(); const pubkey = getPublicKey(secret);
+    const signer = { getPublicKey: vi.fn().mockResolvedValue(pubkey), signEvent: vi.fn((event) => finalizeEvent(event, secret)) };
+    vi.stubGlobal('nostr', signer); vi.stubGlobal('WebSocket', NewApplySocket);
+    const { result } = renderHook(() => useNostr()); await act(() => result.current.connect());
+
+    let first; await act(async () => { first = await result.current.applyTemplate(template); });
+    const staleRetry = first.retry;
+    expect(first.status).toBe('failed'); expect(staleRetry).toEqual(expect.any(Function));
+
+    now.mockReturnValue(2_000); NewApplySocket.accept = true;
+    let second; await act(async () => { second = await result.current.applyTemplate(template); });
+    expect(second.status).toBe('complete');
+    expect(signer.signEvent.mock.calls.map(([event]) => event.created_at)).toEqual([1, 2]);
+    const attemptsAfterSecondApply = NewApplySocket.attempts;
+
+    await expect(staleRetry()).rejects.toThrow('Retry is no longer valid.');
+    expect(NewApplySocket.attempts).toBe(attemptsAfterSecondApply);
+  });
+
   it('merges retained successes so a two-kind retry can recover to complete', async () => {
     class SplitSocket extends RelayWebSocket { static retrying = false; send(payload) { const [, event] = JSON.parse(payload); const accepted = SplitSocket.retrying || event.kind === 10002; queueMicrotask(() => this.onmessage?.({ data: JSON.stringify(['OK', event.id, accepted, 'temporary denial']) })); } }
     const secret = generateSecretKey(); const pubkey = getPublicKey(secret);
