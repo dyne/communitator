@@ -28,7 +28,7 @@ export default defineConfig({
       { text: 'Leader guide', link: '/guide/create-a-template' },
       { text: 'How it works', link: '/guide/how-it-works' },
       { text: 'Reference', link: '/reference/event-kinds' },
-      { text: 'Source', link: 'https://git.basspistol.org/hq/Communitator' }
+      { text: 'Source', link: 'https://github.com/dyne/communitator' }
     ],
     sidebar: {
       '/guide/': [
