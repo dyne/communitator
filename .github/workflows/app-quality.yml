@@ -1,0 +1,75 @@
+name: Application quality
+
+on:
+  pull_request:
+    paths:
+      - 'src/**'
+      - 'test/**'
+      - 'e2e/**'
+      - 'index.html'
+      - 'SECURITY.md'
+      - 'playwright.config.js'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'vite.config.js'
+      - 'vitest.config.js'
+      - 'eslint.config.js'
+      - 'tsconfig.json'
+      - 'tsconfig.contracts.json'
+      - '.nvmrc'
+      - '.github/workflows/app-quality.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'src/**'
+      - 'test/**'
+      - 'e2e/**'
+      - 'index.html'
+      - 'SECURITY.md'
+      - 'playwright.config.js'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'vite.config.js'
+      - 'vitest.config.js'
+      - 'eslint.config.js'
+      - 'tsconfig.json'
+      - 'tsconfig.contracts.json'
+      - '.nvmrc'
+      - '.github/workflows/app-quality.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+        timeout-minutes: 5
+
+      - name: Run quality gate
+        run: npm run check
+        timeout-minutes: 5
+
+      - name: Install Chromium for browser regressions
+        run: npx playwright install --with-deps chromium
+        timeout-minutes: 8
+
+      - name: Run deterministic browser regressions
+        run: npm run test:e2e
+        timeout-minutes: 5
+
+      - name: Audit high and critical dependencies
+        run: npm audit --audit-level=high
+        timeout-minutes: 3

@@ -1,87 +1,16 @@
-import React, { useState, useEffect } from 'react';
+import { useState } from 'react';
 
-const NostrConnect = ({ setConnectedPubkey }) => {
-  const [pubkey, setPubkey] = useState(null);
-  const [loading, setLoading] = useState(false);
-
-  useEffect(() => {
-    if (window.nostr?.getPublicKey) {
-      window.nostr.getPublicKey()
-        .then(pk => {
-          setPubkey(pk);
-          setConnectedPubkey(pk);
-        })
-        .catch(() => {});
-    }
-  }, []);
-
-  const connect = async () => {
+const NostrConnect = ({ connect, disconnect, pubkey, error }) => {
+  const [loading, setLoading] = useState(false); const [copyStatus, setCopyStatus] = useState('');
+  const onConnect = async () => {
     setLoading(true);
-    try {
-      if (!window.nostr) {
-        throw new Error('Please install a Nostr extension (Alby, Nos2x, etc.)');
-      }
-      const pk = await window.nostr.getPublicKey();
-      setPubkey(pk);
-      setConnectedPubkey(pk);
-      setLoading(false);
-    } catch (error) {
-      alert('Failed to connect: ' + error.message);
-      setLoading(false);
-    }
+    try { await connect(); } catch { /* The session exposes an inline safe error. */ } finally { setLoading(false); }
   };
-
-  const disconnect = () => {
-    setPubkey(null);
-    setConnectedPubkey(null);
+  const copyFingerprint = async () => {
+    try { if (typeof navigator.clipboard?.writeText !== 'function') throw new Error('Clipboard unavailable'); await navigator.clipboard.writeText(pubkey); setCopyStatus('Signer fingerprint copied.'); }
+    catch { setCopyStatus('Unable to copy signer fingerprint.'); }
   };
-
-  if (pubkey) {
-    return (
-      <div className="nostr-connected" style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        padding: '12px 16px',
-        background: '#e8f5e9',
-        borderRadius: '8px',
-        border: '1px solid #4caf50',
-        flexWrap: 'wrap',
-        gap: '8px'
-      }}>
-        <span>
-          ✅ Connected: <code>{pubkey.slice(0, 8)}...{pubkey.slice(-8)}</code>
-        </span>
-        <button
-          onClick={disconnect}
-          className="btn-secondary"
-          style={{ fontSize: '12px', padding: '4px 12px' }}
-        >
-          Disconnect
-        </button>
-      </div>
-    );
-  }
-
-  return (
-    <button
-      onClick={connect}
-      disabled={loading}
-      className="btn-nostr"
-      style={{
-        padding: '10px 20px',
-        background: loading ? '#ccc' : '#ff6b00',
-        color: 'white',
-        border: 'none',
-        borderRadius: '6px',
-        fontWeight: '600',
-        cursor: loading ? 'not-allowed' : 'pointer',
-        transition: 'background 0.2s'
-      }}
-    >
-      {loading ? '⏳ Connecting...' : '🔑 Connect with Extension'}
-    </button>
-  );
+  if (pubkey) return <div className="nostr-connected"><span>Connected signer: <code>{pubkey}</code></span><button type="button" onClick={copyFingerprint} className="btn-secondary">Copy signer fingerprint</button><button type="button" onClick={disconnect} className="btn-secondary">Disconnect</button><p className="sr-only" role="status" aria-live="polite">{copyStatus}</p></div>;
+  return <><button type="button" onClick={onConnect} disabled={loading} className="btn-nostr">{loading ? 'Connecting…' : 'Connect with extension'}</button>{error && <p className="inline-status" role="status">{error}</p>}</>;
 };
-
 export default NostrConnect;

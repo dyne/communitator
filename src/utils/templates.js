@@ -1,481 +1,142 @@
-/**
- * ============================================
- * ENCODING / DECODING FUNCTIONS
- * ============================================
- */
+/** @typedef {{url: string, read: boolean, write: boolean}} Relay */
+/** @typedef {{url: string}} Endpoint */
+/** @typedef {{id?: string, name: string, description: string, relays: readonly Relay[], blossomServers: readonly Endpoint[], dmRelays: readonly Endpoint[], created_at?: number}} Template */
 
-/**
- * Encode a template object into a URL-safe base64 string
- */
+export const TEMPLATE_LIMITS = Object.freeze({ encoded: 16 * 1024, id: 80, name: 80, description: 500, url: 2048, relays: 16, blossomServers: 8, dmRelays: 8, destinations: 32 });
+// eslint-disable-next-line no-control-regex -- these characters are rejected at the trust boundary.
+const CONTROL_OR_BIDI = new RegExp('[\\u0000-\\u001F\\u007F-\\u009F\\u200E\\u200F\\u202A-\\u202E\\u2066-\\u2069]', 'u');
+const VERSION = 1;
+
+export class TemplateError extends Error {
+  /** @param {string} code */
+  constructor(code) { super(code); this.name = 'TemplateError'; this.code = code; }
+}
+const fail = (code) => { throw new TemplateError(code); };
+const own = (value, keys) => Object.keys(value).every((key) => keys.includes(key));
+const plainObject = (value) => value !== null && typeof value === 'object' && !Array.isArray(value) && Object.getPrototypeOf(value) === Object.prototype;
+const scalarText = (value, limit, required = false) => {
+  if (typeof value !== 'string') fail('invalid_text');
+  const normalized = value.normalize('NFC');
+  if ((required && normalized.trim().length === 0) || Array.from(normalized).length > limit || CONTROL_OR_BIDI.test(normalized)) fail('invalid_text');
+  return normalized;
+};
+const freeze = (value) => Object.freeze(value);
+const freezeArray = (values) => freeze(values.map((value) => freeze(value)));
+const isLiteralLoopback = (hostname) => hostname === '127.0.0.1' || hostname === '[::1]' || hostname === '::1';
+
+/** Canonical endpoint. Insecure schemes are only opt-in for literal loopback development. */
+export const canonicalizeEndpoint = (raw, kind, { allowInsecureLoopback = false } = {}) => {
+  if (typeof raw !== 'string' || raw.length === 0 || raw.length > TEMPLATE_LIMITS.url || CONTROL_OR_BIDI.test(raw)) fail('invalid_endpoint');
+  let parsed;
+  try { parsed = new URL(raw); } catch { fail('invalid_endpoint'); }
+  if (parsed.username || parsed.password || parsed.hash || !parsed.hostname) fail('invalid_endpoint');
+  const secure = kind === 'blossom' ? 'https:' : 'wss:';
+  const insecure = kind === 'blossom' ? 'http:' : 'ws:';
+  if (parsed.protocol !== secure && !(allowInsecureLoopback && parsed.protocol === insecure && isLiteralLoopback(parsed.hostname))) fail('invalid_endpoint');
+  const url = parsed.toString();
+  if (url.length > TEMPLATE_LIMITS.url) fail('invalid_endpoint');
+  return url;
+};
+export const displayEndpoint = (url) => canonicalizeEndpoint(url, url.startsWith('https:') || url.startsWith('http:') ? 'blossom' : 'relay');
+
+const canonicalRelay = (value) => {
+  if (!plainObject(value) || !own(value, ['url', 'read', 'write']) || typeof value.read !== 'boolean' || typeof value.write !== 'boolean' || (!value.read && !value.write)) fail('invalid_relay');
+  return { url: canonicalizeEndpoint(value.url, 'relay'), read: value.read, write: value.write };
+};
+const canonicalEndpoint = (value, kind) => {
+  if (!plainObject(value) || !own(value, ['url'])) fail('invalid_endpoint');
+  return { url: canonicalizeEndpoint(value.url, kind) };
+};
+const unique = (items) => new Set(items.map((item) => item.url)).size === items.length;
+
+/** Converts untrusted input to the only template shape accepted beyond this boundary. */
+export const canonicalizeTemplate = (input) => {
+  if (!plainObject(input) || !own(input, ['id', 'name', 'description', 'relays', 'blossomServers', 'dmRelays', 'created_at'])) fail('invalid_shape');
+  const name = scalarText(input.name, TEMPLATE_LIMITS.name, true);
+  const description = input.description === undefined ? '' : scalarText(input.description, TEMPLATE_LIMITS.description);
+  const id = input.id === undefined ? undefined : (() => {
+    if (typeof input.id !== 'string' || input.id.length === 0 || input.id.length > TEMPLATE_LIMITS.id || !/^[\x21-\x7E]+$/.test(input.id)) fail('invalid_id');
+    return input.id;
+  })();
+  if (!Array.isArray(input.relays) || input.relays.length === 0 || input.relays.length > TEMPLATE_LIMITS.relays) fail('invalid_relays');
+  const relays = input.relays.map(canonicalRelay);
+  if (!unique(relays)) fail('duplicate_endpoint');
+  const blossomServers = input.blossomServers === undefined ? [] : (() => {
+    if (!Array.isArray(input.blossomServers) || input.blossomServers.length > TEMPLATE_LIMITS.blossomServers) fail('invalid_blossom');
+    const values = input.blossomServers.map((value) => canonicalEndpoint(value, 'blossom'));
+    if (!unique(values)) fail('duplicate_endpoint'); return values;
+  })();
+  const dmRelays = input.dmRelays === undefined ? [] : (() => {
+    if (!Array.isArray(input.dmRelays) || input.dmRelays.length > TEMPLATE_LIMITS.dmRelays) fail('invalid_dm');
+    const values = input.dmRelays.map((value) => canonicalEndpoint(value, 'dm'));
+    if (!unique(values)) fail('duplicate_endpoint'); return values;
+  })();
+  const created_at = input.created_at === undefined ? undefined : (() => {
+    if (!Number.isInteger(input.created_at) || input.created_at < 0 || input.created_at > 4102444800) fail('invalid_timestamp'); return input.created_at;
+  })();
+  return freeze({ ...(id === undefined ? {} : { id }), name, description, relays: freezeArray(relays), blossomServers: freezeArray(blossomServers), dmRelays: freezeArray(dmRelays), ...(created_at === undefined ? {} : { created_at }) });
+};
+export const generateTemplateId = () => globalThis.crypto?.randomUUID?.();
+
+const bytesToBase64Url = (bytes) => btoa(String.fromCharCode(...bytes)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/u, '');
+const base64ToBytes = (text) => {
+  if (!/^[A-Za-z0-9_-]+$/.test(text) || text.length % 4 === 1) fail('invalid_encoding');
+  const padded = text.replace(/-/g, '+').replace(/_/g, '/') + '='.repeat((4 - text.length % 4) % 4);
+  try { return Uint8Array.from(atob(padded), (char) => char.charCodeAt(0)); } catch { fail('invalid_encoding'); }
+};
+const safeParse = (json) => { try { return JSON.parse(json); } catch { fail('invalid_json'); } };
 export const encodeTemplate = (template) => {
-  try {
-    const json = JSON.stringify(template);
-    return btoa(encodeURIComponent(json));
-  } catch (error) {
-    throw new Error('Failed to encode template: ' + error.message);
-  }
+  const canonical = canonicalizeTemplate(template);
+  const encoded = bytesToBase64Url(new TextEncoder().encode(JSON.stringify({ v: VERSION, ...canonical })));
+  if (encoded.length > TEMPLATE_LIMITS.encoded) fail('payload_too_large');
+  return encoded;
 };
-
-/**
- * Decode a URL-safe base64 string back to a template object
- */
+/** Versionless legacy btoa(encodeURIComponent(JSON)) links remain supported. */
 export const decodeTemplate = (encoded) => {
-  try {
-    const clean = encoded.trim();
-    const decoded = atob(clean);
-    const json = decodeURIComponent(decoded);
-    return JSON.parse(json);
-  } catch (error) {
-    console.error('Decode error:', error);
-    throw new Error('Failed to decode template: ' + error.message);
-  }
-};
-
-/**
- * Generate a short unique ID for templates
- */
-export const generateTemplateId = () => {
-  const timestamp = Date.now().toString(36);
-  const random = Math.random().toString(36).substring(2, 8);
-  return `${timestamp}-${random}`;
-};
-
-/**
- * ============================================
- * VALIDATION FUNCTIONS
- * ============================================
- */
-
-/**
- * Validate template structure and data
- */
-export const validateTemplate = (template) => {
-  if (!template || typeof template !== 'object') {
-    throw new Error('Template must be an object');
-  }
-
-  if (!template.name || typeof template.name !== 'string' || template.name.trim().length === 0) {
-    throw new Error('Template must have a name');
-  }
-
-  // Validate main relays
-  if (!Array.isArray(template.relays) || template.relays.length === 0) {
-    throw new Error('Template must have at least one relay');
-  }
-
-  template.relays.forEach((relay, index) => {
-    if (!relay.url || typeof relay.url !== 'string') {
-      throw new Error(`Relay ${index + 1} must have a URL`);
+  if (typeof encoded !== 'string' || encoded.length === 0 || encoded.length > TEMPLATE_LIMITS.encoded) fail('invalid_encoding');
+  let parsed;
+  if (/^[A-Za-z0-9_-]+$/.test(encoded)) {
+    let json;
+    try { json = new TextDecoder('utf-8', { fatal: true }).decode(base64ToBytes(encoded)); } catch (error) { if (error instanceof TemplateError) throw error; fail('invalid_encoding'); }
+    // Legacy btoa(encodeURIComponent(JSON)) always decodes to percent-encoded JSON.
+    // Only that distinct wire shape may fall through to the legacy parser.
+    if (json.startsWith('%7B')) {
+      try { parsed = safeParse(decodeURIComponent(atob(encoded))); } catch (error) { if (error instanceof TemplateError) throw error; fail('invalid_encoding'); }
+      return canonicalizeTemplate(parsed);
     }
-    
-    try {
-      const url = new URL(relay.url);
-      if (url.protocol !== 'wss:' && url.protocol !== 'ws:') {
-        throw new Error(`Relay ${index + 1} must use wss:// or ws:// protocol`);
-      }
-    } catch (error) {
-      throw new Error(`Relay ${index + 1} has invalid URL: ${relay.url}`);
-    }
-
-    if (typeof relay.read !== 'boolean') {
-      throw new Error(`Relay ${index + 1} must specify read (inbox) as boolean`);
-    }
-
-    if (typeof relay.write !== 'boolean') {
-      throw new Error(`Relay ${index + 1} must specify write (outbox) as boolean`);
-    }
-  });
-
-  // Validate blossom servers (optional)
-  if (template.blossomServers && Array.isArray(template.blossomServers)) {
-    template.blossomServers.forEach((server, index) => {
-      if (!server.url || typeof server.url !== 'string') {
-        throw new Error(`Blossom server ${index + 1} must have a URL`);
-      }
-      try {
-        const url = new URL(server.url);
-        if (url.protocol !== 'https:' && url.protocol !== 'http:') {
-          throw new Error(`Blossom server ${index + 1} must use https:// or http:// protocol`);
-        }
-      } catch (error) {
-        throw new Error(`Blossom server ${index + 1} has invalid URL: ${server.url}`);
-      }
-    });
+    parsed = safeParse(json);
+    if (!plainObject(parsed) || parsed.v !== VERSION || !own(parsed, ['v', 'id', 'name', 'description', 'relays', 'blossomServers', 'dmRelays', 'created_at'])) fail('invalid_version');
+    const wire = { ...parsed };
+    delete wire.v;
+    return canonicalizeTemplate(wire);
   }
-
-  // Validate DM relays (optional)
-  if (template.dmRelays && Array.isArray(template.dmRelays)) {
-    template.dmRelays.forEach((relay, index) => {
-      if (!relay.url || typeof relay.url !== 'string') {
-        throw new Error(`DM relay ${index + 1} must have a URL`);
-      }
-      try {
-        const url = new URL(relay.url);
-        if (url.protocol !== 'wss:' && url.protocol !== 'ws:') {
-          throw new Error(`DM relay ${index + 1} must use wss:// or ws:// protocol`);
-        }
-      } catch (error) {
-        throw new Error(`DM relay ${index + 1} has invalid URL: ${relay.url}`);
-      }
-    });
-  }
-
-  return true;
+  if (!/^[A-Za-z0-9+/]+={0,2}$/.test(encoded)) fail('invalid_encoding');
+  try { parsed = safeParse(decodeURIComponent(atob(encoded))); } catch (error) { if (error instanceof TemplateError) throw error; fail('invalid_encoding'); }
+  return canonicalizeTemplate(parsed);
 };
 
-/**
- * Check if a template has duplicate relay URLs
- */
-export const hasDuplicateRelays = (template) => {
-  const urls = template.relays.map(r => r.url);
-  return new Set(urls).size !== urls.length;
+const preset = (id, name, description, host) => canonicalizeTemplate({ id, name, description, relays: [{ url: `wss://${host}`, read: false, write: true }, { url: `wss://${host}/inbox`, read: true, write: false }, { url: 'wss://relay.ditto.pub', read: true, write: true }], blossomServers: [{ url: `https://${host}` }, { url: 'https://blossom.primal.net' }], dmRelays: [{ url: `wss://${host}/inbox` }] });
+export const getCommunityTemplates = () => freeze({ 'planet-dyne': preset('planet-dyne', 'Planet Dyne', 'Settings for dynes like you', 'relay.dyne.org'), basspistol: preset('basspistol', 'Basspistol', 'Settings for Basspistol members of the outernational music syndicate', 'basspistol.org'), 'spatia-arcana': preset('spatia-arcana', 'Spatia Arcana', 'Settings for Spatia Arcana', 'spatia-arcana.com'), 'pyramid-fiatjaf': preset('pyramid-fiatjaf', 'Fiatjaf Pyramid', 'Settings for Fiatjaf Pyramid', 'pyramid.fiatjaf.com'), 'neuch-blockchain': preset('neuch-blockchain', 'Neuchatel Blockchain', 'Settings for Neuchatel Blockchain community', 'nestr.nedao.ch'), anon: canonicalizeTemplate({ id: 'anon', name: 'Anon Relays', description: 'Settings set for anons', relays: [{ url: 'wss://nos.lol', read: true, write: true }, { url: 'wss://nostr.mom', read: true, write: true }, { url: 'wss://relay.ditto.pub', read: true, write: true }], blossomServers: [{ url: 'https://blossom.primal.net' }], dmRelays: [{ url: 'wss://nos.lol' }, { url: 'wss://relay.ditto.pub' }] }) });
+
+const buildEvent = (kind, template, created_at, tags) => {
+  const canonical = canonicalizeTemplate(template);
+  if (!Number.isInteger(created_at) || created_at < 0 || created_at > 4102444800) fail('invalid_timestamp');
+  return freeze({ kind, created_at, tags: freezeArray(tags(canonical).map((tag) => freeze([...tag]))), content: '' });
 };
-
-/**
- * ============================================
- * DEFAULT / PRESET TEMPLATES
- * ============================================
- */
-
-/**
- * Get default relay template
- */
-export const getDefaultTemplate = () => {
-  return {
-    id: generateTemplateId(),
-    name: 'Default Relays',
-    description: 'Standard Nostr relay set for beginners',
-    relays: [
-      { url: 'wss://relay.damus.io', read: true, write: true },
-      { url: 'wss://nos.lol', read: true, write: true },
-      { url: 'wss://relay.snort.social', read: true, write: true }
-    ],
-    blossomServers: [
-      { url: 'https://cdn.satellite.earth' }
-    ],
-    dmRelays: [
-      { url: 'wss://relay.private-msgs.com' }
-    ],
-    created_at: Math.floor(Date.now() / 1000)
+export const buildKind10002 = (template, created_at) => buildEvent(10002, template, created_at, (value) => value.relays.map(({ url, read, write }) => ['r', url, ...(read && write ? [] : [read ? 'read' : 'write'])]));
+export const buildKind10063 = (template, created_at) => buildEvent(10063, template, created_at, (value) => value.blossomServers.map(({ url }) => ['server', url]));
+export const buildKind10050 = (template, created_at) => buildEvent(10050, template, created_at, (value) => value.dmRelays.map(({ url }) => ['relay', url]));
+export const BLAST_RELAYS = freezeArray(['wss://relay.primal.net', 'wss://relay.damus.io', 'wss://relay.ditto.pub', 'wss://offchain.pub', 'wss://sendit.nosflare.com', 'wss://nostr.mom', 'wss://nos.lol', 'wss://purplepag.es', 'wss://indexer.coracle.social', 'wss://user.kindpag.es', 'wss://directory.yabu.me', 'wss://profiles.nostr1.com'].map((url) => ({ url: canonicalizeEndpoint(url, 'relay') })));
+export const publicationDestinations = (template) => {
+  const canonical = canonicalizeTemplate(template);
+  const destinations = new Map();
+  const add = (url, source) => {
+    const current = destinations.get(url) ?? { url, blast: false, template: false };
+    current[source] = true;
+    destinations.set(url, current);
   };
-};
-
-/**
- * Get popular community templates
- */
-export const getCommunityTemplates = () => {
-  return {
-    'planet-dyne': {
-      id: 'planet-dyne',
-      name: 'Planet Dyne',
-      description: 'Settings for dynes like you',
-      relays: [
-        { url: 'wss://relay.dyne.org', read: false, write: true },
-        { url: 'wss://relay.dyne.org/inbox', read: true, write: false },
-        { url: 'wss://relay.ditto.pub', read: true, write: true }
-      ],
-      blossomServers: [
-        { url: 'https://relay.dyne.org' },
-        { url: 'https://blossom.primal.net' }
-      ],
-      dmRelays: [
-        { url: 'wss://relay.dyne.org/inbox' }
-      ]
-    },
-    'basspistol': {
-      id: 'basspistol',
-      name: 'Basspistol',
-      description: 'Settings for Basspistol members of the outernational music syndicate',
-      relays: [
-        { url: 'wss://basspistol.org', read: false, write: true },
-        { url: 'wss://basspistol.org/inbox', read: true, write: false },
-        { url: 'wss://relay.ditto.pub', read: true, write: true }
-      ],
-      blossomServers: [
-        { url: 'https://basspistol.org' },
-        { url: 'https://blossom.primal.net' }
-      ],
-      dmRelays: [
-        { url: 'wss://basspistol.org/inbox' }
-      ]
-    },
-    'spatia-arcana': {
-      id: 'spatia-arcana',
-      name: 'Spatia Arcana',
-      description: 'Settings for Spatia Arcana',
-      relays: [
-        { url: 'wss://spatia-arcana.com', read: false, write: true },
-        { url: 'wss://spatia-arcana.com/inbox', read: true, write: false },
-        { url: 'wss://relay.ditto.pub', read: true, write: true }
-      ],
-      blossomServers: [
-        { url: 'https://spatia-arcana.com' },
-        { url: 'https://blossom.primal.net' }
-      ],
-      dmRelays: [
-        { url: 'wss://spatia-arcana.com/inbox' }
-      ]
-    },
-    'pyramid-fiatjaf': {
-      id: 'pyramid-fiatjaf',
-      name: 'Fiatjaf Pyramid',
-      description: 'Settings for Fiatjaf Pyramid',
-      relays: [
-        { url: 'wss://pyramid.fiatjaf.com', read: false, write: true },
-        { url: 'wss://pyramid.fiatjaf.com/inbox', read: true, write: false },
-        { url: 'wss://relay.ditto.pub', read: true, write: true }
-      ],
-      blossomServers: [
-        { url: 'https://pyramid.fiatjaf.com' },
-        { url: 'https://blossom.primal.net' }
-      ],
-      dmRelays: [
-        { url: 'wss://pyramid.fiatjaf.com/inbox' }
-      ]
-    },
-    'neuch-blockchain': {
-      id: 'neuch-blockchain',
-      name: 'Neuchatel Blockchain',
-      description: 'Settings for Neuchatel Blockchain community',
-      relays: [
-        { url: 'wss://nestr.nedao.ch', read: false, write: true },
-        { url: 'wss://nestr.nedao.ch/inbox', read: true, write: false },
-        { url: 'wss://relay.ditto.pub', read: true, write: true }
-      ],
-      blossomServers: [
-        { url: 'https://nestr.nedao.ch' },
-        { url: 'https://blossom.primal.net' }
-      ],
-      dmRelays: [
-        { url: 'wss://nestr.nedao.ch/inbox' }
-      ]
-    },
-    'anon': {
-      id: 'anon',
-      name: 'Anon Relays',
-      description: 'Settings set for anons',
-      relays: [
-        { url: 'wss://nos.lol', read: true, write: true },
-        { url: 'wss://nostr.mom', read: true, write: true },
-        { url: 'wss://relay.ditto.pub', read: true, write: true }
-      ],
-      blossomServers: [
-        { url: 'https://blossom.primal.net' }
-      ],
-      dmRelays: [
-        { url: 'wss://nos.lol' },
-        { url: 'wss://relay.ditto.pub' }
-      ]
-    },
-  };
-};
-
-/**
- * ============================================
- * TEMPLATE MANIPULATION FUNCTIONS
- * ============================================
- */
-
-/**
- * Add a relay to a template
- */
-export const addRelayToTemplate = (template, relay) => {
-  if (!relay.url) {
-    throw new Error('Relay must have a URL');
-  }
-  
-  if (template.relays.some(r => r.url === relay.url)) {
-    throw new Error('Relay already exists in template');
-  }
-  
-  return {
-    ...template,
-    relays: [
-      ...template.relays,
-      {
-        url: relay.url,
-        read: relay.read !== undefined ? relay.read : true,
-        write: relay.write !== undefined ? relay.write : true
-      }
-    ]
-  };
-};
-
-/**
- * Remove a relay from a template by URL
- */
-export const removeRelayFromTemplate = (template, relayUrl) => {
-  return {
-    ...template,
-    relays: template.relays.filter(r => r.url !== relayUrl)
-  };
-};
-
-/**
- * Update a relay in a template
- */
-export const updateRelayInTemplate = (template, relayUrl, updates) => {
-  return {
-    ...template,
-    relays: template.relays.map(r => 
-      r.url === relayUrl ? { ...r, ...updates } : r
-    )
-  };
-};
-
-/**
- * Clone a template (deep copy)
- */
-export const cloneTemplate = (template) => {
-  return JSON.parse(JSON.stringify(template));
-};
-
-/**
- * ============================================
- * CONVERSION FUNCTIONS
- * ============================================
- */
-
-/**
- * Convert template relays to kind 10002 tags format
- * read = inbox, write = outbox
- */
-export const templateToKind10002Tags = (template) => {
-  return template.relays.map(relay => {
-    const params = [];
-    if (!relay.read) params.push('read');
-    if (!relay.write) params.push('write');
-    return ['r', relay.url, ...params];
-  });
-};
-
-/**
- * Convert kind 10002 tags to template format
- * - ['r', url] = read AND write (both inbox and outbox)
- * - ['r', url, 'read'] = read ONLY (inbox only)
- * - ['r', url, 'write'] = write ONLY (outbox only)
- */
-export const kind10002TagsToTemplate = (tags, name = 'Imported Relays') => {
-  const relays = tags
-    .filter(tag => tag[0] === 'r')
-    .map(tag => {
-      const url = tag[1];
-      const params = tag.slice(2);
-      // If 'read' is in params, read is false (don't read from this relay)
-      // If 'write' is in params, write is false (don't write to this relay)
-      const read = !params.includes('read');
-      const write = !params.includes('write');
-      return {
-        url: url,
-        read: read,
-        write: write
-      };
-    });
-
-  return {
-    id: generateTemplateId(),
-    name: name,
-    description: `Imported from existing relay set`,
-    relays: relays,
-    blossomServers: [],
-    dmRelays: [],
-    created_at: Math.floor(Date.now() / 1000)
-  };
-};
-
-/**
- * ============================================
- * STORAGE FUNCTIONS (LocalStorage)
- * ============================================
- */
-
-/**
- * Save template to localStorage
- */
-export const saveTemplateToStorage = (template) => {
-  const history = JSON.parse(localStorage.getItem('templateHistory') || '[]');
-  const entry = {
-    ...template,
-    saved_at: Date.now()
-  };
-  const filtered = history.filter(h => h.id !== template.id);
-  filtered.unshift(entry);
-  localStorage.setItem('templateHistory', JSON.stringify(filtered.slice(0, 50)));
-  return entry;
-};
-
-/**
- * Get template history from localStorage
- */
-export const getTemplateHistory = () => {
-  return JSON.parse(localStorage.getItem('templateHistory') || '[]');
-};
-
-/**
- * Clear template history
- */
-export const clearTemplateHistory = () => {
-  localStorage.removeItem('templateHistory');
-};
-
-/**
- * Get recently applied templates
- */
-export const getRecentTemplates = (limit = 5) => {
-  const history = getTemplateHistory();
-  return history.slice(0, limit);
-};
-
-/**
- * ============================================
- * SHARE FUNCTIONS
- * ============================================
- */
-
-/**
- * Generate a shareable URL for a template
- */
-export const generateShareUrl = (template, baseUrl = window.location.origin) => {
-  const encoded = encodeTemplate(template);
-  return `${baseUrl}/apply/${encoded}`;
-};
-
-/**
- * Extract template from share URL
- */
-export const extractTemplateFromUrl = (url) => {
-  const match = url.match(/\/apply\/([^/?]+)/);
-  if (!match) {
-    throw new Error('Invalid share URL');
-  }
-  return decodeTemplate(match[1]);
-};
-
-/**
- * ============================================
- * EXPORT ALL
- * ============================================
- */
-
-// Default export for convenience
-export default {
-  encodeTemplate,
-  decodeTemplate,
-  generateTemplateId,
-  validateTemplate,
-  hasDuplicateRelays,
-  getDefaultTemplate,
-  getCommunityTemplates,
-  addRelayToTemplate,
-  removeRelayFromTemplate,
-  updateRelayInTemplate,
-  cloneTemplate,
-  templateToKind10002Tags,
-  kind10002TagsToTemplate,
-  saveTemplateToStorage,
-  getTemplateHistory,
-  clearTemplateHistory,
-  getRecentTemplates,
-  generateShareUrl,
-  extractTemplateFromUrl
+  BLAST_RELAYS.forEach(({ url }) => add(url, 'blast'));
+  canonical.relays.forEach(({ url }) => add(url, 'template'));
+  if (destinations.size > TEMPLATE_LIMITS.destinations) fail('too_many_destinations');
+  return freeze([...destinations.values()].map(({ url, blast, template: templateSource }) => freeze({ url, blast, template: templateSource })));
 };

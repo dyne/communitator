@@ -12,9 +12,9 @@ Communitator turns a community’s Nostr connection policy into one portable, re
 1. A community leader chooses the main relays and their read/write permissions.
 2. They can add Blossom servers for media and DM relays for private messages.
 3. Communitator encodes the complete template into the URL.
-4. A member opens the URL and reviews every destination.
+4. A member opens the URL and reviews the template endpoints, every configured blast destination, and every canonical template relay destination in distinct groups.
 5. The member connects a NIP-07-compatible extension and chooses to apply the template.
-6. Communitator asks the extension to sign the relevant events and publishes them to the configured relays and the blast relay set.
+6. Communitator asks the extension to sign the relevant events and publishes them to the deduplicated union of configured blast destinations and reviewed template main relays.
 
 Nothing is signed when a template is created or merely opened.
 
@@ -46,7 +46,7 @@ See the [event-kind reference](../reference/event-kinds) for the exact behavior.
 
 ## Why blast relays are included
 
-The application publishes signed updates to a configured blast relay set as well as the member’s selected relays. This redundancy helps the new relay information become discoverable outside a single destination.
+The application publishes signed updates to the deduplicated union of the configured blast relay set and the template's canonical main relays. This redundancy helps the new relay information become discoverable outside a single destination. Both groups are enumerated separately before consent; overlap is contacted once, and one operation uses at most four sockets across all event kinds.
 
 ::: warning Availability is not guaranteed
 Relays are independent services. A publish attempt can succeed on some destinations and fail on others. Communitator reports the result for each event after publishing.
@@ -54,6 +54,6 @@ Relays are independent services. A publish attempt can succeed on some destinati
 
 ## Consent stays with the member
 
-The leader authors the recommendation; the member authorizes the update. Applying a template requires a compatible NIP-07 extension such as Alby or Nos2x, and the extension remains responsible for showing or enforcing its own signing approval flow.
+The leader authors the recommendation; the member authorizes the update. The canonical preview appears first, **Connect** requests only an identity, and **Apply** requests one signature for each present event kind. A relay is successful only after its positive NIP-01 `OK` response; the UI reports complete, partial, failed, and cancelled outcomes and can retry failed destinations without signing retained events again.
 
 Next: [create a community template](./create-a-template).

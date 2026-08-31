@@ -19,7 +19,7 @@ Each valid main relay becomes an `r` tag.
 - A write-only relay includes `write`.
 - A relay used for both directions has no third tag value.
 
-The member’s main relay URLs are also included among the publish destinations for this event.
+The signed event is published after explicit user approval to the deduplicated union of configured blast destinations and reviewed template main relays. A relay in both groups is contacted once.
 
 ## Kind 10063 — Blossom servers ([NIP-B7](https://github.com/nostr-protocol/nips/blob/master/B7.md))
 
@@ -29,7 +29,7 @@ Each valid server becomes a `server` tag.
 ["server", "https://media.example"]
 ```
 
-The source application preserves the listed order. The event is published to the blast set and to the main relay URLs carried by the template.
+The source application preserves the listed order. The event is published after explicit user approval to the deduplicated union of configured blast destinations and reviewed template main relays.
 
 ## Kind 10050 — DM relays ([NIP-17](https://github.com/nostr-protocol/nips/blob/master/17.md))
 
@@ -39,16 +39,15 @@ Each valid DM relay becomes a `relay` tag.
 ["relay", "wss://dm.example"]
 ```
 
-The event is published to the blast set and to the template’s main relay URLs.
+The event is published after explicit user approval to the deduplicated union of configured blast destinations and reviewed template main relays.
 
 ## Shared event fields
 
-Every prepared event includes:
+Every unsigned signer input includes:
 
 - the numeric `kind`;
-- the connected public key;
 - the current Unix timestamp;
 - the generated tags;
 - an empty content string.
 
-The browser extension returns the signed event. Communitator then sends the standard `EVENT` message over WebSocket to each publish destination and waits for an `OK` response or a timeout.
+Signer identity is intentionally absent from that reviewed input. The browser extension returns a signed event containing its public key, ID, and signature; Communitator verifies those fields and the exact reviewed payload before it sends the standard `EVENT` message to any destination.

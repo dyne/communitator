@@ -16,12 +16,16 @@ Confirm all of the following before connecting a signer:
 - read and write permissions match the intended inbox and outbox behavior;
 - Blossom servers belong to operators you are willing to use for media;
 - DM relay domains are appropriate for private-message routing.
+- every application-configured blast destination is acceptable;
+- every canonical template main relay destination is acceptable.
+
+The preview keeps configured blast destinations and template relay destinations in separate lists. If the same canonical relay appears in both, publication contacts it once. One apply operation opens at most four WebSocket connections across all event kinds combined.
 
 If the link is invalid or the data does not pass validation, Communitator stops and displays an error instead of presenting an apply action.
 
 ## Connect a signer
 
-The web application expects a NIP-07-compatible browser extension. It checks for `window.nostr`, asks the extension for your public key, and uses the extension to sign events.
+The web application expects a NIP-07-compatible browser extension. Choosing **Connect** requests the public key only. It does not sign or publish anything.
 
 ::: warning Use HTTPS
 Browser extensions and signing integrations should be used in a secure context. Run the production app over HTTPS and verify the origin before approving a signature.
@@ -29,16 +33,18 @@ Browser extensions and signing integrations should be used in a secure context. 
 
 ## Apply and publish
 
-After you choose **Apply Template & Publish to Relays**, Communitator prepares each event represented in the template, asks your extension to sign it, and publishes it.
+After you choose **Apply template and publish reviewed events**, Communitator prepares only the reviewed kinds: `10002`, plus `10063` and `10050` when those sections are present. Your extension shows each signature request. Signed events are then published to the deduplicated union of the configured blast destinations and canonical template relay destinations shown in the preview.
 
 The results distinguish:
 
 - successful and failed event kinds;
-- deliveries to blast relays;
-- deliveries to your configured relays;
-- the signed event identifier when available.
+- positive NIP-01 `OK` acknowledgements and rejected/unreachable publication destinations;
+- complete, partial, failed, and cancelled outcomes;
+- retryable failures without asking the signer to sign retained events again.
 
-A partial result does not necessarily mean the signed event is unusable. Relays can be offline or reject a publish independently. Read the per-event result before retrying.
+A partial result does not necessarily mean the signed event is unusable. Relays can be offline or reject a publish independently. Contacting a public relay exposes your network connection to that operator; read the per-event result before retrying.
+
+For deployment headers, residual GitHub Pages limitations, and disclosure guidance, read the [security and hosting guide](./security).
 
 ## If something looks wrong
 

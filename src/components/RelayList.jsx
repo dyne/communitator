@@ -1,44 +1,5 @@
-import React from 'react';
 
-const RelayList = ({ relays, onUpdate, onRemove }) => {
-  return (
-    <div className="relay-list">
-      {relays.map((relay, index) => (
-        <div key={index} className="relay-item">
-          <input
-            type="text"
-            value={relay.url}
-            onChange={(e) => onUpdate(index, 'url', e.target.value)}
-            placeholder="wss://relay.example.com"
-            className="relay-input"
-          />
-          <label>
-            <input
-              type="checkbox"
-              checked={relay.read}
-              onChange={(e) => onUpdate(index, 'read', e.target.checked)}
-            />
-            📨 Inbox (Read)
-          </label>
-          <label>
-            <input
-              type="checkbox"
-              checked={relay.write}
-              onChange={(e) => onUpdate(index, 'write', e.target.checked)}
-            />
-            📤 Outbox (Write)
-          </label>
-          <button 
-            onClick={() => onRemove(index)}
-            className="btn-danger"
-            disabled={relays.length === 1}
-          >
-            ✕
-          </button>
-        </div>
-      ))}
-    </div>
-  );
-};
+import EndpointEditor from './EndpointEditor';
+const RelayList = ({ relays, onUpdate, onRemove, onTouched, errors }) => <div className="relay-list">{relays.map((relay, index) => <EndpointEditor key={relay.id} endpoint={relay} group="relay" index={index} relay removable={relays.length > 1} onUpdate={onUpdate} onRemove={onRemove} onTouched={onTouched} error={errors.get(relay.id)} />)}</div>;
 
 export default RelayList;

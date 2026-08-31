@@ -1,294 +1,238 @@
-import { useState, useEffect, useCallback } from 'react';
+// @ts-check
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { verifyEvent } from 'nostr-tools';
+import { buildKind10002, buildKind10050, buildKind10063, canonicalizeEndpoint, canonicalizeTemplate, publicationDestinations } from '../utils/templates.js';
 
-// Blast relays - configured once, used for publishing
-const BLAST_RELAYS = [
-  'wss://relay.primal.net',
-  'wss://relay.damus.io',
-  'wss://relay.ditto.pub',
-  'wss://offchain.pub',
-  'wss://sendit.nosflare.com',
-  'wss://nostr.mom',
-  'wss://nos.lol',
-  'wss://purplepag.es',
-  'wss://indexer.coracle.social',
-  'wss://user.kindpag.es',
-  'wss://directory.yabu.me',
-  'wss://profiles.nostr1.com'
-];
+/** @typedef {import('../types/operation-result').CanonicalTemplate} CanonicalTemplate */
+/** @typedef {import('../types/operation-result').DestinationInput} DestinationInput */
+/** @typedef {import('../types/operation-result').NostrSession} NostrSession */
+/** @typedef {import('../types/operation-result').OperationEventResult} OperationEventResult */
+/** @typedef {import('../types/operation-result').OperationResult} OperationResult */
+/** @typedef {import('../types/operation-result').RelayPublisher} RelayPublisher */
+/** @typedef {import('../types/operation-result').RelayResult} RelayResult */
+/** @typedef {import('../types/operation-result').SignedNostrEvent} SignedNostrEvent */
+/** @typedef {import('../types/operation-result').SignerAdapter} SignerAdapter */
+/** @typedef {import('../types/operation-result').SignerState} SignerState */
+/** @typedef {import('../types/operation-result').SignerStatus} SignerStatus */
+/** @typedef {import('../types/operation-result').TransportResult} TransportResult */
+/** @typedef {import('../types/operation-result').UnsignedNostrEvent} UnsignedNostrEvent */
+/** @typedef {{ WebSocketImpl?: typeof WebSocket, signal?: AbortSignal }} RelayTransportOptions */
+/** @typedef {RelayTransportOptions & { publishRelay?: RelayPublisher }} RelaySetOptions */
+/** @typedef {{ event: SignedNostrEvent | UnsignedNostrEvent, signer: SignerState, results: RelayResult[] }} MutableOperationEvent */
+/** @typedef {Omit<OperationResult, 'retry'>} OperationSummary */
 
-export const useNostr = () => {
-  const [pubkey, setPubkey] = useState(null);
-  const [isConnected, setIsConnected] = useState(false);
-  const [error, setError] = useState(null);
-  const [extension, setExtension] = useState(null);
-  const [isConnecting, setIsConnecting] = useState(false);
-
-  // ============================================================
-  // INIT - Check for existing extension
-  // ============================================================
-  useEffect(() => {
-    const checkConnection = async () => {
-      if (isConnected && pubkey) return;
-
-      try {
-        if (window.nostr?.getPublicKey) {
-          try {
-            const pk = await window.nostr.getPublicKey();
-            setExtension(window.nostr);
-            setPubkey(pk);
-            setIsConnected(true);
-            console.log('✅ Connected via extension:', pk.slice(0, 8) + '...');
-            return;
-          } catch (e) {
-            console.log('Extension available but not authorized');
-          }
-        }
-        console.log('ℹ️ No extension found');
-      } catch (e) {
-        console.error('Init error:', e);
-      }
-    };
-
-    checkConnection();
-
-    const interval = setInterval(() => {
-      if (window.nostr?.getPublicKey && !isConnected) {
-        window.nostr.getPublicKey().then(pk => {
-          setExtension(window.nostr);
-          setPubkey(pk);
-          setIsConnected(true);
-          console.log('✅ Extension connected:', pk.slice(0, 8) + '...');
-        }).catch(() => {});
-      }
-    }, 2000);
-
-    return () => clearInterval(interval);
-  }, [isConnected, pubkey]);
-
-  // ============================================================
-  // CONNECT
-  // ============================================================
-  const connect = useCallback(async () => {
-    try {
-      setIsConnecting(true);
-      if (!window.nostr) {
-        throw new Error('Please install a Nostr extension (Alby, Nos2x, etc.)');
-      }
-      const pk = await window.nostr.getPublicKey();
-      setExtension(window.nostr);
-      setPubkey(pk);
-      setIsConnected(true);
-      setError(null);
-      setIsConnecting(false);
-      return pk;
-    } catch (e) {
-      setError(e.message);
-      setIsConnecting(false);
-      throw e;
-    }
-  }, []);
-
-  // ============================================================
-  // SIGN EVENT
-  // ============================================================
-  const signEvent = useCallback(async (event) => {
-    if (!extension) {
-      throw new Error('No Nostr extension connected');
-    }
-    try {
-      console.log('📱 Signing event...');
-      const signed = await extension.signEvent(event);
-      console.log('✅ Event signed');
-      return signed;
-    } catch (e) {
-      console.error('Signing failed:', e);
-      throw e;
-    }
-  }, [extension]);
-
-  // ============================================================
-  // PUBLISH HELPERS
-  // ============================================================
-  const publishToSingleRelay = useCallback((url, event) => {
-    return new Promise((resolve) => {
-      const ws = new WebSocket(url);
-      let resolved = false;
-
-      const timeout = setTimeout(() => {
-        if (!resolved) {
-          resolved = true;
-          try { ws.close(); } catch (e) {}
-          resolve({ url, success: false, error: 'Timeout' });
-        }
-      }, 10000);
-
-      ws.onopen = () => {
-        ws.send(JSON.stringify(['EVENT', event]));
-        const pubTimeout = setTimeout(() => {
-          if (!resolved) {
-            resolved = true;
-            try { ws.close(); } catch (e) {}
-            resolve({ url, success: false, error: 'Publish timeout' });
-          }
-        }, 15000);
-
-        ws.onmessage = (msg) => {
-          try {
-            const data = JSON.parse(msg.data);
-            if (data[0] === 'OK' && data[1] === event.id) {
-              if (!resolved) {
-                resolved = true;
-                clearTimeout(timeout);
-                clearTimeout(pubTimeout);
-                try { ws.close(); } catch (e) {}
-                resolve({ url, success: true });
-              }
-            }
-          } catch (e) {}
-        };
-      };
-
-      ws.onerror = () => {
-        if (!resolved) {
-          resolved = true;
-          clearTimeout(timeout);
-          try { ws.close(); } catch (e) {}
-          resolve({ url, success: false, error: 'WebSocket error' });
-        }
-      };
-    });
-  }, []);
-
-  const publishToRelays = useCallback(async (event, relayUrls, label = '') => {
-    console.log(`Publishing ${label} to ${relayUrls.length} relays...`);
-    
-    const validUrls = relayUrls.filter(url => {
-      try {
-        new URL(url);
-        return url.startsWith('wss://') || url.startsWith('ws://');
-      } catch {
-        return false;
-      }
-    });
-    
-    if (validUrls.length === 0) {
-      return [{ url: 'none', success: false, error: 'No valid relay URLs' }];
-    }
-    
-    const results = await Promise.all(
-      validUrls.map(url => publishToSingleRelay(url, event))
-    );
-    
-    const successCount = results.filter(r => r.success).length;
-    console.log(`Published ${label} to ${successCount}/${results.length} relays`);
-    
-    return results;
-  }, [publishToSingleRelay]);
-
-  // ============================================================
-  // PUBLISH KIND FUNCTIONS
-  // ============================================================
-
-  const publishKind = useCallback(async (kind, data, pubkey, userRelayUrls = []) => {
-    if (!extension) {
-      throw new Error('No Nostr extension connected');
-    }
-
-    const event = {
-      kind,
-      pubkey,
-      created_at: Math.floor(Date.now() / 1000),
-      tags: data.tags || [],
-      content: data.content || ''
-    };
-
-    console.log(`Signing kind ${kind} event...`);
-    const signedEvent = await signEvent(event);
-    console.log(`Kind ${kind} event signed successfully`);
-
-    const allRelays = [...new Set([...BLAST_RELAYS, ...userRelayUrls])];
-    console.log(`Publishing kind ${kind} to ${allRelays.length} relays (${BLAST_RELAYS.length} blast + ${userRelayUrls.length} user)`);
-
-    const results = await publishToRelays(signedEvent, allRelays, `kind ${kind}`);
-    
-    const blastResults = results.filter(r => BLAST_RELAYS.includes(r.url));
-    const userResults = results.filter(r => userRelayUrls.includes(r.url));
-    
-    return {
-      event: signedEvent,
-      results,
-      blastResults,
-      userResults
-    };
-  }, [extension, signEvent, publishToRelays]);
-
-  const publishKind10002 = useCallback(async (relays, pubkey) => {
-    const validRelays = relays.filter(r => r.url && r.url.trim() !== '');
-    if (validRelays.length === 0) {
-      throw new Error('No valid relays to publish');
-    }
-    const tags = validRelays.map(relay => {
-      const params = [];
-      // Read only
-      if (relay.read && !relay.write) {
-        params.push('read');
-      }
-      // Write only
-      else if (!relay.read && relay.write) {
-        params.push('write');
-      }
-      // If both are true or both are false → no tags (default behavior)
-      return ['r', relay.url, ...params];
-    });
-    const userRelayUrls = validRelays.map(r => r.url);
-    return await publishKind(10002, { tags }, pubkey, userRelayUrls);
-  }, [publishKind]);
-
-  const publishKind10063 = useCallback(async (servers, pubkey, allUserRelays = []) => {
-    const validServers = servers.filter(s => s.url && s.url.trim() !== '');
-    if (validServers.length === 0) {
-      throw new Error('No valid blossom servers');
-    }
-    const tags = validServers.map(server => ['server', server.url]);
-    return await publishKind(10063, { tags }, pubkey, allUserRelays);
-  }, [publishKind]);
-
-  const publishKind10050 = useCallback(async (relays, pubkey, allUserRelays = []) => {
-    const validRelays = relays.filter(r => r.url && r.url.trim() !== '');
-    if (validRelays.length === 0) {
-      throw new Error('No valid DM relays');
-    }
-    const tags = validRelays.map(relay => ['relay', relay.url]);
-    return await publishKind(10050, { tags }, pubkey, allUserRelays);
-  }, [publishKind]);
-
-  // ============================================================
-  // DISCONNECT
-  // ============================================================
-  const disconnect = useCallback(() => {
-    setPubkey(null);
-    setIsConnected(false);
-    setExtension(null);
-    console.log('👋 Disconnected');
-  }, []);
-
-  // ============================================================
-  // RETURN
-  // ============================================================
-  return {
-    pubkey,
-    isConnected,
-    error,
-    isConnecting,
-    connect,
-    signEvent,
-    disconnect,
-    publishToRelays,
-    publishKind,
-    publishKind10002,
-    publishKind10063,
-    publishKind10050,
-  };
+const PUBKEY = /^[0-9a-f]{64}$/u;
+const RELAY_LIMIT = 32;
+const CONCURRENCY = 4;
+const RELAY_TIMEOUT = 10_000;
+const MESSAGE_LIMIT = 1024;
+// eslint-disable-next-line no-control-regex -- relay control characters are stripped before rendering.
+const CONTROL_CHARS = /[\u0000-\u001F\u007F-\u009F]/gu;
+/** @param {unknown} value */
+const safeMessage = (value) => typeof value === 'string' ? value.replace(CONTROL_CHARS, ' ').slice(0, 240) : 'Relay rejected the event.';
+/** @param {unknown} value */
+const publicKey = (value) => typeof value === 'string' && PUBKEY.test(value) ? value : null;
+/** @param {UnsignedNostrEvent} unsigned @param {unknown} signed @param {string} pubkey */
+const sameUnsigned = (unsigned, signed, pubkey) => {
+  if (!signed || typeof signed !== 'object') return false;
+  const candidate = /** @type {Record<string, unknown>} */ (signed);
+  return candidate.pubkey === pubkey
+    && candidate.kind === unsigned.kind
+    && candidate.created_at === unsigned.created_at
+    && candidate.content === unsigned.content
+    && JSON.stringify(candidate.tags) === JSON.stringify(unsigned.tags);
 };
 
+/** Fail closed: a signer may only return the exact reviewed event for the connected identity. */
+/** @param {UnsignedNostrEvent} unsigned @param {unknown} signed @param {string} identity @returns {SignedNostrEvent} */
+export const verifySignedEvent = (unsigned, signed, identity) => {
+  if (!sameUnsigned(unsigned, signed, identity)) throw new Error('The signer returned an invalid event.');
+  const candidate = /** @type {import('nostr-tools').Event} */ (signed);
+  if (!verifyEvent(candidate)) throw new Error('The signer returned an invalid event.');
+  return Object.freeze({ ...candidate, tags: Object.freeze(candidate.tags.map((tag) => Object.freeze([...tag]))) });
+};
+
+/** A bounded one-event-per-destination transport with a single terminal result. */
+/** @param {string} url @param {SignedNostrEvent} event @param {RelayTransportOptions} [options] @returns {Promise<TransportResult>} */
+export const publishRelayEvent = (url, event, { WebSocketImpl = globalThis.WebSocket, signal } = {}) => new Promise((resolve) => {
+  if (signal?.aborted) { resolve({ url, status: 'cancelled' }); return; }
+  if (typeof WebSocketImpl !== 'function') { resolve({ url, status: 'network-error', error: 'Relay transport is unavailable.' }); return; }
+  /** @type {WebSocket | undefined} */ let socket;
+  let settled = false;
+  /** @type {string | undefined} */ let notice;
+  const abort = () => settle({ status: 'cancelled' });
+  const timer = setTimeout(() => settle({ status: 'timeout', error: 'Relay timed out.' }), RELAY_TIMEOUT);
+  /** @param {Omit<TransportResult, 'url'>} result */
+  const settle = (result) => {
+    if (settled) return;
+    settled = true;
+    clearTimeout(timer);
+    signal?.removeEventListener('abort', abort);
+    if (socket) {
+      socket.onopen = null;
+      socket.onerror = null;
+      socket.onclose = null;
+      socket.onmessage = null;
+    }
+    try { socket?.close(); } catch { /* cleanup */ }
+    resolve(Object.freeze({ url, ...result }));
+  };
+  signal?.addEventListener('abort', abort, { once: true });
+  try {
+    const connectedSocket = new WebSocketImpl(url);
+    socket = connectedSocket;
+    connectedSocket.onopen = () => { try { connectedSocket.send(JSON.stringify(['EVENT', event])); } catch { settle({ status: 'network-error', error: 'Relay send failed.' }); } };
+    connectedSocket.onerror = () => settle({ status: 'network-error', error: 'Relay connection failed.' });
+    connectedSocket.onclose = (closeEvent) => { if (!settled) settle({ status: 'network-error', error: safeMessage(closeEvent?.reason || notice || 'Relay closed the connection.') }); };
+    connectedSocket.onmessage = ({ data }) => { if (typeof data !== 'string' || data.length > MESSAGE_LIMIT) return; try { const message = JSON.parse(data); if (!Array.isArray(message)) return; if (message[0] === 'NOTICE') { notice = safeMessage(message[1]); return; } if (message[0] === 'OK' && message[1] === event.id && typeof message[2] === 'boolean') settle(message[2] ? { status: 'accepted' } : { status: 'rejected', error: safeMessage(message[3]) }); } catch { /* malformed frame */ } };
+  } catch { settle({ status: 'network-error', error: 'Relay setup failed.' }); }
+});
+
+/** Shares the operation-wide connection cap across every event kind. */
+/** @param {RelayTransportOptions} [options] @returns {RelayPublisher} */
+export const createRelayQueue = (options = {}) => {
+  /** @type {Array<{ url: string, event: SignedNostrEvent, resolve: (value: TransportResult) => void }>} */
+  const queued = []; let active = 0;
+  const drain = () => {
+    while (active < CONCURRENCY && queued.length) {
+      const item = queued.shift();
+      if (!item) break;
+      const { url, event, resolve } = item;
+      active += 1;
+      publishRelayEvent(url, event, options).then(resolve).finally(() => { active -= 1; drain(); });
+    }
+  };
+  /** @type {RelayPublisher} */
+  const publish = (url, event) => new Promise((resolve) => { queued.push({ url, event, resolve }); drain(); });
+  return publish;
+};
+
+/** @param {SignedNostrEvent} event @param {readonly (string | DestinationInput)[]} destinations @param {RelaySetOptions} [options] @returns {Promise<readonly RelayResult[]>} */
+export const publishRelaySet = async (event, destinations, options = {}) => {
+  /** @type {Map<string, { url: string, blast: boolean, template: boolean }>} */
+  const requested = new Map();
+  destinations.forEach((destination) => {
+    const value = typeof destination === 'string' ? { url: destination } : destination;
+    try {
+      const url = canonicalizeEndpoint(value?.url, 'relay');
+      const existing = requested.get(url) ?? { url, blast: false, template: false };
+      requested.set(url, { ...existing, blast: existing.blast || value?.blast === true, template: existing.template || value?.template === true });
+    } catch { /* Canonical template and callers provide validated endpoints. */ }
+  });
+  const requestedDestinations = [...requested.values()];
+  const overflow = requestedDestinations.slice(RELAY_LIMIT).map((destination) => Object.freeze({ ...destination, status: 'rejected', error: 'Relay destination limit exceeded.' }));
+  const { publishRelay, ...transportOptions } = options;
+  const urls = requestedDestinations.slice(0, RELAY_LIMIT); /** @type {RelayResult[]} */ const results = new Array(urls.length); let next = 0;
+  const worker = async () => { while (next < urls.length) { const index = next++; const destination = urls[index]; const result = await (publishRelay ? publishRelay(destination.url, event) : publishRelayEvent(destination.url, event, transportOptions)); results[index] = Object.freeze({ ...result, ...destination }); } };
+  await Promise.all(Array.from({ length: Math.min(CONCURRENCY, urls.length) }, worker));
+  return Object.freeze([...results, ...overflow]);
+};
+const signerMessage = 'The signer declined or failed to sign this event.';
+/** @type {SignerState} */
+const signedState = Object.freeze({ status: 'signed' });
+/** @param {SignerStatus} status @param {string} [error] @returns {SignerState} */
+const signerState = (status, error) => Object.freeze({ status, ...(error ? { error } : {}) });
+/** @param {Promise<SignedNostrEvent>} signature @param {AbortSignal} signal @returns {Promise<SignedNostrEvent>} */
+const abortableSignature = (signature, signal) => new Promise((resolve, reject) => {
+  let settled = false;
+  /** @param {SignedNostrEvent} value */
+  const finishResolve = (value) => { if (settled) return; settled = true; signal.removeEventListener('abort', abort); resolve(value); };
+  /** @param {unknown} reason */
+  const finishReject = (reason) => { if (settled) return; settled = true; signal.removeEventListener('abort', abort); reject(reason); };
+  const abort = () => finishReject(new Error('Signing cancelled.'));
+  if (signal.aborted) abort(); else signal.addEventListener('abort', abort, { once: true });
+  Promise.resolve(signature).then(finishResolve, finishReject);
+});
+/** @param {readonly MutableOperationEvent[]} events @returns {readonly OperationEventResult[]} */
+const freezeOperationEvents = (events) => Object.freeze(events.map(({ event, signer, results }) => Object.freeze({ event, signer, results: Object.freeze(results) })));
+/** @param {readonly MutableOperationEvent[]} events @returns {OperationSummary} */
+const summarize = (events) => {
+  const frozenEvents = freezeOperationEvents(events);
+  const completed = frozenEvents.filter(({ signer, results }) => signer.status === 'signed' && results.some(({ status }) => status === 'accepted')).length;
+  const cancelled = frozenEvents.some(({ signer, results }) => signer.status === 'cancelled' || results.some(({ status }) => status === 'cancelled'));
+  return { status: completed === frozenEvents.length ? 'complete' : completed ? 'partial' : cancelled ? 'cancelled' : 'failed', events: frozenEvents, completed };
+};
+
+/** @returns {NostrSession} */
+export const useNostr = () => {
+  const [pubkey, setPubkey] = useState(/** @type {string|null} */ (null)); const [error, setError] = useState(/** @type {string|null} */ (null)); const [isConnecting, setIsConnecting] = useState(false);
+  const activeOperation = useRef(/** @type {AbortController|null} */ (null)); const sessionVersion = useRef(0); const operationVersion = useRef(0); const mounted = useRef(true);
+  useEffect(() => { mounted.current = true; return () => { mounted.current = false; activeOperation.current?.abort(); }; }, []);
+  const connect = useCallback(async () => {
+    setIsConnecting(true); setError(null);
+    try { const adapter = /** @type {SignerAdapter | undefined} */ (window.nostr); if (!adapter || typeof adapter.getPublicKey !== 'function' || typeof adapter.signEvent !== 'function') throw new Error(); const identity = publicKey(await adapter.getPublicKey()); if (!identity || window.nostr !== adapter) throw new Error(); if (mounted.current) setPubkey(identity); return identity; }
+    catch { if (mounted.current) setError('Unable to connect the signer.'); throw new Error('Unable to connect the signer.'); }
+    finally { if (mounted.current) setIsConnecting(false); }
+  }, []);
+  const cancelOperation = useCallback(() => { operationVersion.current += 1; activeOperation.current?.abort(); }, []);
+  const disconnect = useCallback(() => { sessionVersion.current += 1; cancelOperation(); setPubkey(null); setError(null); }, [cancelOperation]);
+  const applyTemplate = useCallback(/** @param {CanonicalTemplate} input @returns {Promise<OperationResult>} */ async (input) => {
+    const adapter = /** @type {SignerAdapter | undefined} */ (window.nostr); const identity = publicKey(pubkey); const version = sessionVersion.current;
+    if (!identity || !adapter || typeof adapter.signEvent !== 'function') throw new Error('Please connect your Nostr signer first.');
+    const operation = operationVersion.current + 1; operationVersion.current = operation;
+    const controller = new AbortController(); activeOperation.current?.abort(); activeOperation.current = controller;
+    const template = canonicalizeTemplate(input); const createdAt = Math.floor(Date.now() / 1000);
+    const unsigned = /** @type {UnsignedNostrEvent[]} */ ([[template.relays.length, buildKind10002], [template.blossomServers.length, buildKind10063], [template.dmRelays.length, buildKind10050]].filter(([count]) => count).map(([, build]) => build(template, createdAt)));
+    /** @type {MutableOperationEvent[]} */
+    const signing = unsigned.map((event) => ({ event, signer: signerState('not-requested'), results: [] }));
+    for (let index = 0; index < unsigned.length; index += 1) {
+      const event = unsigned[index];
+      if (controller.signal.aborted || window.nostr !== adapter || sessionVersion.current !== version || operationVersion.current !== operation) {
+        for (let remaining = index; remaining < signing.length; remaining += 1) signing[remaining] = { ...signing[remaining], signer: signerState('cancelled') };
+        if (activeOperation.current === controller) activeOperation.current = null;
+        return Object.freeze(summarize(signing));
+      }
+      try {
+        const signingCopy = { ...event, tags: event.tags.map((tag) => [...tag]) };
+        const nextSigned = await abortableSignature(adapter.signEvent(signingCopy), controller.signal);
+        if (controller.signal.aborted || window.nostr !== adapter || sessionVersion.current !== version || operationVersion.current !== operation) {
+          for (let remaining = index; remaining < signing.length; remaining += 1) signing[remaining] = { ...signing[remaining], signer: signerState('cancelled') };
+          if (activeOperation.current === controller) activeOperation.current = null;
+          return Object.freeze(summarize(signing));
+        }
+        signing[index] = { event: verifySignedEvent(event, nextSigned, identity), signer: signedState, results: [] };
+      } catch {
+        const cancelled = controller.signal.aborted || window.nostr !== adapter || sessionVersion.current !== version || operationVersion.current !== operation;
+        signing[index] = { ...signing[index], signer: signerState(cancelled ? 'cancelled' : 'rejected', cancelled ? undefined : signerMessage) };
+        for (let remaining = index + 1; remaining < signing.length; remaining += 1) signing[remaining] = { ...signing[remaining], signer: signerState(cancelled ? 'cancelled' : 'not-requested') };
+        if (activeOperation.current === controller) activeOperation.current = null;
+        return Object.freeze(summarize(signing));
+      }
+    }
+    if (controller.signal.aborted || window.nostr !== adapter || sessionVersion.current !== version || operationVersion.current !== operation) {
+      const cancelled = signing.map((entry) => ({ ...entry, signer: signerState('cancelled') }));
+      if (activeOperation.current === controller) activeOperation.current = null;
+      return Object.freeze(summarize(cancelled));
+    }
+    const destinations = publicationDestinations(template);
+    const verifiedSigning = /** @type {Array<{ event: SignedNostrEvent, signer: SignerState, results: RelayResult[] }>} */ (signing);
+    /** @param {AbortSignal} signal @returns {Promise<MutableOperationEvent[]>} */
+    const publishEvents = async (signal) => { const publishRelay = createRelayQueue({ signal }); return Promise.all(verifiedSigning.map(async ({ event, signer }) => ({ event, signer, results: [...await publishRelaySet(event, destinations, { signal, publishRelay })] }))); };
+    /** @param {readonly MutableOperationEvent[]} currentEvents @returns {OperationResult} */
+    const makeResult = (currentEvents) => {
+      const summary = summarize(currentEvents);
+      if (summary.status === 'complete' || summary.status === 'cancelled') return Object.freeze(summary);
+      const retry = async () => {
+        if (window.nostr !== adapter || sessionVersion.current !== version || operationVersion.current !== operation || !Object.isFrozen(template) || !Object.isFrozen(destinations) || currentEvents.some(({ event }) => !Object.isFrozen(event))) throw new Error('Retry is no longer valid.');
+        const retryController = new AbortController(); activeOperation.current?.abort(); activeOperation.current = retryController;
+        try {
+          const publishRelay = createRelayQueue({ signal: retryController.signal });
+          const retried = await Promise.all(currentEvents.map(async ({ event, signer, results }) => {
+            if (!('id' in event)) throw new Error('Retry is no longer valid.');
+            const failedDestinations = results.filter(({ status }) => status !== 'accepted').map(({ url, blast, template: templateSource }) => ({ url, blast, template: templateSource }));
+            if (!failedDestinations.length) return { event, signer, results };
+            const retryResults = await publishRelaySet(event, failedDestinations, { signal: retryController.signal, publishRelay });
+            const replacements = new Map(retryResults.map((result) => [result.url, result]));
+            return { event, signer, results: results.map((result) => result.status === 'accepted' ? result : replacements.get(result.url) ?? result) };
+          }));
+          return makeResult(retried);
+        } finally { if (activeOperation.current === retryController) activeOperation.current = null; }
+      };
+      return Object.freeze({ ...summary, retry });
+    };
+    try { return makeResult(await publishEvents(controller.signal)); }
+    finally { if (activeOperation.current === controller) activeOperation.current = null; }
+  }, [pubkey]);
+  return { pubkey, isConnected: Boolean(pubkey), error, isConnecting, connect, disconnect, cancelOperation, applyTemplate };
+};
 export default useNostr;

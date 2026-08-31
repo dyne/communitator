@@ -1,7 +1,7 @@
 node_modules
 *.pem
 dist/
-package-lock.json
+coverage/
 !docs/package-lock.json
 docs/.vitepress/cache/
 docs/.vitepress/dist/
