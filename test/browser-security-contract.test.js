@@ -6,6 +6,13 @@ describe('browser security contract', () => {
     const html = fs.readFileSync('index.html', 'utf8');
     expect(html).toMatch(/Content-Security-Policy/); expect(html).toContain("script-src 'self'"); expect(html).toContain("style-src 'self'"); expect(html).toContain("connect-src 'self' wss:"); expect(html).not.toMatch(/unsafe-inline|unsafe-eval/);
   });
+  it('loads application styles as a same-origin stylesheet compatible with the CSP', () => {
+    const html = fs.readFileSync('index.html', 'utf8');
+    const entrypoint = fs.readFileSync('src/main.jsx', 'utf8');
+
+    expect(html).toContain('<link rel="stylesheet" href="/src/styles/index.css"');
+    expect(entrypoint).not.toMatch(/import ['"].*styles\/index\.css['"]/);
+  });
   it('keeps the security policy explicit about host-only headers', () => {
     const policy = fs.readFileSync('SECURITY.md', 'utf8');
     expect(policy).toMatch(/frame-ancestors 'none'/); expect(policy).toMatch(/GitHub Pages cannot configure response headers/); expect(policy).toMatch(/Referrer-Policy: no-referrer/);
