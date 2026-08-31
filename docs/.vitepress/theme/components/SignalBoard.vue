@@ -1,5 +1,5 @@
 <script setup lang="ts">
-const sourceUrl = 'https://git.basspistol.org/hq/Communitator'
+const sourceUrl = 'https://github.com/dyne/communitator'
 
 const channels = [
   { kind: '10002', name: 'Main relays', note: 'Inbox + outbox', tone: 'orange', spec: 'NIP-65', specUrl: 'https://github.com/nostr-protocol/nips/blob/master/65.md' },

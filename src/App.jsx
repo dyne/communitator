@@ -22,7 +22,7 @@ function App() {
           <p>
             Built with Nostr &middot;{' '}
             <a
-              href="https://git.basspistol.org/hq/Communitator" 
+              href="https://github.com/dyne/communitator"
               target="_blank" 
               rel="noopener noreferrer"
             >

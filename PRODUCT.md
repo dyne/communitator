@@ -33,7 +33,7 @@ Leaders configure and share templates from the existing React application. Membe
 
 ## Brand Commitments
 
-Keep the product name “Communitator,” the Dyne context, the practical peer-to-peer voice, and the existing source-code link at `https://git.basspistol.org/hq/Communitator`.
+Keep the product name “Communitator,” the Dyne context, the practical peer-to-peer voice, and the existing source-code link at `https://github.com/dyne/communitator`.
 
 ## Evidence on Hand
 
