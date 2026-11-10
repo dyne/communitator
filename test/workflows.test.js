@@ -43,4 +43,13 @@ describe('workflow supply-chain policy', () => {
     expect(workflow).toMatch(/BASE_PATH:\s*\/communitator\//);
     expect(workflow).toMatch(/path:\s*docs\/\.vitepress\/dist/);
   });
+
+  it('validates docs pull requests without publishing them', () => {
+    const workflow = fs.readFileSync('.github/workflows/deploy-docs.yml', 'utf8');
+    expect(workflow).toMatch(/pull_request:\s*\n\s*paths:/);
+    expect(workflow).toMatch(/run: npm audit --audit-level=high/);
+    expect(workflow).toMatch(/name: Upload Pages artifact\s*\n\s*if: github\.event_name != 'pull_request'/);
+    expect(workflow).toMatch(/deploy:\s*\n\s*name: Deploy\s*\n\s*if: github\.event_name != 'pull_request'/);
+    expect(workflow).toContain("group: pages-${{ github.event.pull_request.number || 'deploy' }}");
+  });
 });
