@@ -64,7 +64,14 @@ const TemplateCreator = () => {
       dispatch({ type: 'shared', value: url }); navigator.clipboard?.writeText(url).catch(() => {});
     } catch { dispatch({ type: 'error', value: 'Check the template name and endpoint values.' }); requestAnimationFrame(() => errorRef.current?.focus()); }
   };
-  return <section className="template-creator" aria-labelledby="creator-title"><h2 id="creator-title">Create settings template</h2><p className="helper-text">Shared templates are untrusted recommendations. Review every endpoint before sharing.</p>
+  return <section className="template-creator" aria-labelledby="creator-title">
+    <div className="landing-intro">
+      <h2>Help your community get started on Nostr</h2>
+      <p>Communitator lets you bundle your community’s recommended Nostr settings into one shareable link. Choose relays — the servers that carry posts — and optionally add servers for media uploads and private messages.</p>
+      <p>Start with a community preset below or create your own template, then share the link. Members can review the settings, connect their Nostr browser extension, and approve applying them to their account.</p>
+      <p>You can create and share a template without connecting an account.</p>
+    </div>
+    <h2 id="creator-title">Create settings template</h2><p className="helper-text">Shared templates are untrusted recommendations. Review every endpoint before sharing.</p>
     <form onSubmit={submit} noValidate>
       <fieldset className="community-templates-section"><legend>Community templates</legend><p className="community-templates-description">Load a preset, then review it before generating a link.</p><div className="community-templates-buttons">{Object.entries(presets).map(([key, template]) => <button type="button" key={key} onClick={() => dispatch({ type: 'preset', key, template })} className={`btn-secondary community-template-btn ${state.selectedPreset === key ? 'active-template' : ''}`}>{template.name} <span className="relay-count">({template.relays.length} relays)</span></button>)}</div>{state.selectedPreset && <button type="button" className="btn-secondary clear-template-btn" onClick={() => dispatch({ type: 'reset' })}>Clear preset</button>}</fieldset>
       <div className="form-group"><label htmlFor="template-name">Template name</label><input id="template-name" required maxLength={TEMPLATE_LIMITS.name} value={state.name} onBlur={() => touch('name')} onChange={(event) => dispatch({ type: 'field', field: 'name', value: event.target.value })} placeholder="e.g., My community relays" aria-invalid={shownErrors.has('name') ? 'true' : undefined} aria-errormessage={shownErrors.has('name') ? 'template-name-error' : undefined} aria-describedby={`template-name-help${shownErrors.has('name') ? ' template-name-error' : ''}`} /><p id="template-name-help" className="helper-text">Up to {TEMPLATE_LIMITS.name} characters.</p>{shownErrors.has('name') && <p id="template-name-error" className="field-error" role="alert">{shownErrors.get('name')}</p>}</div>
