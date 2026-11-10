@@ -370,6 +370,20 @@ footer a:hover {
   font-size: 22px;
 }
 
+.landing-intro {
+  margin-bottom: 28px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--border);
+}
+
+.landing-intro h2 {
+  margin-bottom: 12px;
+}
+
+.landing-intro p {
+  margin: 0 0 12px;
+}
+
 /* ============================================
  *  TEMPLATE APPLIER
  *  ============================================ */
