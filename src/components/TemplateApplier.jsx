@@ -26,9 +26,26 @@ const TemplateApplier = () => {
   if (decodeError) return <section className="template-applier"><h2>Apply relay template</h2><div className="error-box" role="alert"><h3>Unable to load template</h3><p>{decodeError}</p><Link to="/" className="btn-primary compact-action">Create a template</Link></div></section>;
   if (!template) return <section className="template-applier" aria-busy="true"><p className="loading" role="status">Loading template…</p></section>;
   const connected = Boolean(nostr.pubkey);
-  return <section className="template-applier" aria-labelledby="apply-title"><h2 id="apply-title">Apply relay template</h2><TemplatePreview template={template} />
+  return <section className="template-applier" aria-labelledby="apply-title"><h2 id="apply-title">Apply relay template</h2>
+    <section aria-labelledby="apply-explained-title">
+      <h3 id="apply-explained-title">What will this change?</h3>
+      <p>This template recommends where your Nostr apps should read and publish posts{template.blossomServers.length > 0 ? ', store media' : ''}{template.dmRelays.length > 0 ? ', and receive private messages' : ''}. Applying it publishes these preferences under your Nostr identity so compatible apps can discover and use them.</p>
+      <p><strong>The lists included here replace your published lists for those settings; they are not added to your existing lists.</strong> Settings not included in this template are left alone. Your apps may need to refresh before picking up the changes, and support varies by app.</p>
+      <p>Opening this link or connecting your signer does not change any settings. Review the proposed lists below before applying.</p>
+    </section>
+    <TemplatePreview template={template} />
     {!results && <section className="auth-section" aria-labelledby="signer-title"><h3 id="signer-title">1. Connect your Nostr signer</h3><p>Connecting requests your public key only. Applying later requests signatures for kinds 10002, 10063, and 10050 when present.</p><NostrConnect connect={nostr.connect} disconnect={nostr.disconnect} pubkey={nostr.pubkey} error={nostr.error} /></section>}
-    {connected && !results && <section className="apply-controls" aria-labelledby="apply-title"><h3>2. Approve the reviewed events</h3><p className="helper-text">Your signer will show each event for approval. Communitator only publishes after signed events return.</p><button type="button" onClick={apply} className="btn-primary apply-button" disabled={applying}>{applying ? 'Publishing reviewed events…' : 'Apply template and publish reviewed events'}</button></section>}
+    {connected && !results && <section className="apply-controls" aria-labelledby="apply-action-title">
+      <h3 id="apply-action-title">2. Apply these settings to your Nostr identity</h3>
+      <p>When you click the button below:</p>
+      <ol>
+        <li>Communitator asks your signer to sign each settings list shown above. Review the requests in your signer.</li>
+        <li>After all signatures are returned and verified, Communitator sends the signed settings to the publication destinations listed above. These preferences are public, including your DM relay addresses; your private messages are not published.</li>
+        <li>You will see which relays accepted the settings and which failed. You can retry failed destinations.</li>
+      </ol>
+      <p>If you decline a signature, Communitator publishes nothing from this application attempt.</p>
+      <button type="button" onClick={apply} className="btn-primary apply-button" disabled={applying}>{applying ? 'Publishing reviewed events…' : 'Apply template and publish reviewed events'}</button>
+    </section>}
     {(applying || nostr.isConnecting) && <p className="inline-status" role="status">{nostr.isConnecting ? 'Connecting signer…' : 'Signing and publishing…'}</p>}
     {applying && <button type="button" onClick={cancel} className="btn-secondary">Cancel application</button>}
     {error && <div ref={errorRef} tabIndex={-1} className="error-box" role="alert">{error}</div>}
