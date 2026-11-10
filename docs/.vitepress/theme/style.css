@@ -715,6 +715,7 @@
 
   .dyne-footer__top {
     display: flex;
+    flex-wrap: wrap;
     justify-content: space-between;
     gap: 3rem;
   }
@@ -738,6 +739,22 @@
     align-items: start;
     gap: 2rem;
   }
+
+  .dyne-footer__support {
+    flex: 1 1 18rem;
+    max-inline-size: 28rem;
+    line-height: 1.7;
+  }
+
+  .dyne-footer__support p { margin: 0 0 0.75rem; }
+
+  .dyne-footer__support a {
+    color: inherit;
+    text-decoration: underline;
+    text-underline-offset: 0.2em;
+  }
+
+  .dyne-footer__support a:hover { color: var(--signal-orange); }
 
   .dyne-footer__socials {
     display: flex;

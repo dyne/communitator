@@ -8,6 +8,14 @@
             <img class="dyne-footer__logotype" :src="withBase('/dyne-logotype.svg')" alt="Dyne.org" />
           </a>
 
+          <div class="dyne-footer__support">
+            <p>Software made with 💖 by <a href="https://dyne.org">dyne.org</a></p>
+            <p>
+              Help us keep making free software for everyone.
+              <a href="https://dyne.org/donate">Please consider a donation.</a>
+            </p>
+          </div>
+
           <div class="dyne-footer__right">
             <nav class="dyne-footer__socials" aria-label="Dyne.org social links">
               <a
